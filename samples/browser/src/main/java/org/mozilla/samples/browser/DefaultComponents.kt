@@ -16,6 +16,8 @@ import mozilla.components.browser.search.SearchEngineManager
 import mozilla.components.browser.session.Session
 import mozilla.components.browser.session.SessionManager
 import mozilla.components.browser.session.storage.DefaultSessionStorage
+import mozilla.components.browser.storage.local.LocalHistory
+import mozilla.components.browser.storage.local.LocalHistoryTrackingDelegate
 import mozilla.components.concept.engine.DefaultSettings
 import mozilla.components.concept.engine.Engine
 import mozilla.components.feature.intent.IntentProcessor
@@ -29,7 +31,8 @@ open class DefaultComponents(private val applicationContext: Context) {
     // Engine
     open val engine: Engine by lazy {
         val settings = DefaultSettings(
-            requestInterceptor = SampleRequestInterceptor(applicationContext)
+            requestInterceptor = SampleRequestInterceptor(applicationContext),
+            historyTrackingDelegate = LocalHistoryTrackingDelegate()
         )
         SystemEngine(applicationContext, settings)
     }

@@ -15,6 +15,9 @@ project(':concept-tabstray').projectDir = new File(rootDir, 'components/concept/
 include ':concept-engine'
 project(':concept-engine').projectDir = new File(rootDir, 'components/concept/engine')
 
+include ':concept-storage'
+project(':concept-storage').projectDir = new File(rootDir, 'components/concept/storage')
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // Features
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -67,6 +70,9 @@ project(':browser-search').projectDir = new File(rootDir, 'components/browser/se
 
 include ':browser-session'
 project(':browser-session').projectDir = new File(rootDir, 'components/browser/session')
+
+include ':browser-storage-local'
+project(':browser-storage-local').projectDir = new File(rootDir, 'components/browser/storage-local')
 
 include ':browser-tabstray'
 project(':browser-tabstray').projectDir = new File(rootDir, 'components/browser/tabstray')
