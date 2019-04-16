@@ -39,6 +39,7 @@ dependencies {
     implementation project(':service-firefox-accounts')
     implementation project(':feature-qr')
     implementation project(':support-base')
+    implementation project(':support-ktx')
 
     implementation Dependencies.support_constraintlayout
 

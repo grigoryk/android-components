@@ -11,7 +11,9 @@ import android.support.v7.app.AppCompatActivity
 import android.support.customtabs.CustomTabsIntent
 import android.view.View
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.support.v4.app.ActivityCompat
+import android.support.v4.content.ContextCompat
 import android.widget.CheckBox
 import android.widget.TextView
 import kotlinx.coroutines.CoroutineScope
@@ -24,16 +26,20 @@ import mozilla.components.service.fxa.FirefoxAccount
 import mozilla.components.service.fxa.FxaException
 import mozilla.components.service.fxa.Config
 import mozilla.components.support.base.log.Log
+import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.base.log.sink.AndroidLogSink
+import mozilla.components.support.ktx.android.content.isPermissionGranted
 import kotlin.coroutines.CoroutineContext
 
 @Suppress("TooManyFunctions")
-open class MainActivity : AppCompatActivity(), LoginFragment.OnLoginCompleteListener, CoroutineScope {
+class MainActivity : AppCompatActivity(), ActivityCompat.OnRequestPermissionsResultCallback, LoginFragment.OnLoginCompleteListener, CoroutineScope{
     private lateinit var account: FirefoxAccount
     private var scopesWithoutKeys: Array<String> = arrayOf("profile")
     private var scopesWithKeys: Array<String> = arrayOf("profile", "https://identity.mozilla.com/apps/oldsync")
     private var scopes: Array<String> = scopesWithoutKeys
     private var wantsKeys: Boolean = false
+
+    private val logger = Logger("SamplesFirefoxAccounts")
 
     private lateinit var qrFeature: QrFeature
 
@@ -47,7 +53,9 @@ open class MainActivity : AppCompatActivity(), LoginFragment.OnLoginCompleteList
         const val CONFIG_URL = "https://latest.dev.lcip.org"
         const val FXA_STATE_PREFS_KEY = "fxaAppState"
         const val FXA_STATE_KEY = "fxaState"
+        private const val FENNEC_AUTH_PERMISSION = "org.mozilla.fennec_grisha_fxaccount.permission.AUTH_READ_PROVIDER"
         private const val REQUEST_CODE_CAMERA_PERMISSIONS = 1
+        private const val REQUEST_CODE_FENNEC_AUTH_PERMISSION = 2
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -105,9 +113,57 @@ open class MainActivity : AppCompatActivity(), LoginFragment.OnLoginCompleteList
             txtView.text = getString(R.string.logged_out)
         }
 
+        findViewById<View>(R.id.buttonFennec).setOnClickListener {
+            if (ContextCompat.checkSelfPermission(this, FENNEC_AUTH_PERMISSION) != PackageManager.PERMISSION_GRANTED) {
+                logger.debug("Don't have the Fennec Auth Read persmission. Requesting...")
+                ActivityCompat.requestPermissions(this, arrayOf(FENNEC_AUTH_PERMISSION), REQUEST_CODE_FENNEC_AUTH_PERMISSION)
+            } else {
+                readFennecAuthState()
+            }
+
+        }
+
         findViewById<CheckBox>(R.id.checkboxKeys).setOnCheckedChangeListener { _, isChecked ->
             wantsKeys = isChecked
             scopes = if (isChecked) scopesWithKeys else scopesWithoutKeys
+        }
+    }
+
+    private fun readFennecAuthState() {
+        val fennecAuthAuthority = "org.mozilla.fennec_grisha.fxa.auth"
+        val fennecAuthAuthorityUri = Uri.parse("content://$fennecAuthAuthority")
+        val fennecAuthStateUri = Uri.withAppendedPath(fennecAuthAuthorityUri, "state")
+        val fennecAuthContentProvider = applicationContext.contentResolver
+                .acquireContentProviderClient(fennecAuthAuthority)
+
+        val txtView: TextView = findViewById(R.id.txtView)
+
+        fennecAuthContentProvider.use { client ->
+            logger.debug("Got Fennec auth client: $client")
+
+            if (client == null) {
+                txtView.text = getString(R.string.fennec_info, "doesn't support FxA state querying")
+                return@use
+            }
+
+            client.query(fennecAuthStateUri,
+                    arrayOf("email", "sessionToken", "kSync", "kXSCS"),
+                    null, null, null, null
+            ).use cursorProcessing@{ cursor ->
+
+                if (cursor == null) {
+                    txtView.text = getString(R.string.fennec_info, "signed-out")
+                    return@cursorProcessing
+                }
+
+                cursor.moveToFirst()
+
+                val email = cursor.getString(cursor.getColumnIndex("email"))
+                val sessionToken = cursor.getBlob(cursor.getColumnIndex("sessionToken"))
+                val kSync = cursor.getBlob(cursor.getColumnIndex("kSync"))
+                val kXSCS = cursor.getString(cursor.getColumnIndex("kXSCS"))
+                txtView.text = getString(R.string.fennec_info, "$email\n\n$sessionToken\n\n$kSync\n\n$kXSCS")
+            }
         }
     }
 
@@ -197,6 +253,11 @@ open class MainActivity : AppCompatActivity(), LoginFragment.OnLoginCompleteList
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
         when (requestCode) {
             REQUEST_CODE_CAMERA_PERMISSIONS -> qrFeature.onPermissionsResult(permissions, grantResults)
+            REQUEST_CODE_FENNEC_AUTH_PERMISSION -> {
+                if (applicationContext.isPermissionGranted(FENNEC_AUTH_PERMISSION)) {
+                    readFennecAuthState()
+                }
+            }
         }
     }
 

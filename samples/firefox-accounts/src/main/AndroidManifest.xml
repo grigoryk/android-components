@@ -8,6 +8,7 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="org.mozilla.fennec_grisha_fxaccount.permission.AUTH_READ_PROVIDER" />
 
     <application
         android:allowBackup="true"
