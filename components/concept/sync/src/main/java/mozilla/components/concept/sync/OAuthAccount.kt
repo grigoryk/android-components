@@ -24,6 +24,7 @@ interface OAuthAccount : AutoCloseable {
     fun getProfile(): Deferred<Profile>
     fun completeOAuthFlow(code: String, state: String): Deferred<Unit>
     fun getAccessToken(singleScope: String): Deferred<AccessTokenInfo>
+    fun migrateFromSessionTokenAsync(sessionToken: String, kSync: String, kXCS: String): Deferred<Unit>
     fun getTokenServerEndpointURL(): String
     fun toJSONString(): String
 

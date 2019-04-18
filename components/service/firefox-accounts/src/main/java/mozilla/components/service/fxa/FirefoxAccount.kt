@@ -4,6 +4,7 @@
 
 package mozilla.components.service.fxa
 
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -149,6 +150,11 @@ class FirefoxAccount internal constructor(private val inner: InternalFxAcct) : O
         return scope.async {
             inner.getAccessToken(singleScope).into()
         }
+    }
+
+    override fun migrateFromSessionTokenAsync(sessionToken: String, kSync: String, kXCS: String): Deferred<Unit> {
+//        return scope.async { inner.migrateFromSessionToken(sessionToken, kSync, kXCS) }
+        return CompletableDeferred(Unit)
     }
 
     /**
