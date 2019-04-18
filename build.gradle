@@ -46,11 +46,11 @@ subprojects {
     apply plugin: 'org.jetbrains.dokka-android'
 
     // Enable Kotlin warnings as errors. We should work to enable this on all modules (#2346).
-    if (!KotlinCompiler.projectsWithWarningsAsErrorsDisabled.contains(project.name)) {
-        tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
-            kotlinOptions.allWarningsAsErrors = true
-        }
-    }
+//    if (!KotlinCompiler.projectsWithWarningsAsErrorsDisabled.contains(project.name)) {
+//        tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
+//            kotlinOptions.allWarningsAsErrors = true
+//        }
+//    }
 
     // Enforce that all (transitive) dependencies are using the same support library version as we do.
     project.configurations.all {
@@ -123,7 +123,7 @@ subprojects {
 
                 lintOptions {
                     warningsAsErrors true
-                    abortOnError (project.name != "support-test")
+                    abortOnError (project.name != "samples-firefox-accounts")
 
                     // With our L10N process its totally possible to have missing or (temporarily) extra translations.
                     disable 'MissingTranslation', 'ExtraTranslation'
