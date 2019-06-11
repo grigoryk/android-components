@@ -17,6 +17,7 @@ import kotlinx.coroutines.cancel
 import mozilla.components.concept.sync.AccountObserver
 import mozilla.components.concept.sync.AuthException
 import mozilla.components.concept.sync.DeviceCapability
+import mozilla.components.concept.sync.DeviceConstellation
 import mozilla.components.concept.sync.DeviceEvent
 import mozilla.components.concept.sync.DeviceEventsObserver
 import mozilla.components.concept.sync.DeviceType
@@ -60,6 +61,12 @@ val authErrorRegistry = ObserverRegistry<AuthErrorObserver>()
 
 interface AuthErrorObserver {
     fun onAuthErrorAsync(e: AuthException): Deferred<Unit>
+}
+
+object FirefoxAccountRegistry {
+    @Volatile
+    var account: OAuthAccount? = null
+    val constellation: DeviceConstellation? = account?.deviceConstellation()
 }
 
 /**
@@ -212,7 +219,6 @@ open class FxaAccountManager(
     // However, that executor doesn't guarantee that it'll always use the same thread, and so vars
     // are marked as volatile for across-thread visibility. Similarly, event queue uses a concurrent
     // list, although that's probably an overkill.
-    @Volatile private lateinit var account: OAuthAccount
     @Volatile private var profile: Profile? = null
     @Volatile private var state = AccountState.Start
     private val eventQueue = ConcurrentLinkedQueue<Event>()
@@ -237,7 +243,7 @@ open class FxaAccountManager(
         return when (state) {
             AccountState.AuthenticatedWithProfile,
             AccountState.AuthenticatedNoProfile,
-            AccountState.AuthenticationProblem -> account
+            AccountState.AuthenticationProblem -> FirefoxAccountRegistry.account
             else -> null
         }
     }
@@ -295,7 +301,7 @@ open class FxaAccountManager(
 
     override fun close() {
         coroutineContext.cancel()
-        account.close()
+        FirefoxAccountRegistry.account!!.close()
     }
 
     /**
@@ -356,7 +362,7 @@ open class FxaAccountManager(
                         if (savedAccount == null) {
                             Event.AccountNotFound
                         } else {
-                            account = savedAccount
+                            FirefoxAccountRegistry.account = savedAccount
                             Event.AccountRestored
                         }
                     }
@@ -367,21 +373,21 @@ open class FxaAccountManager(
                 when (via) {
                     Event.Logout -> {
                         // Destroy the current device record.
-                        account.deviceConstellation().destroyCurrentDeviceAsync().await()
+                        FirefoxAccountRegistry.account!!.deviceConstellation().destroyCurrentDeviceAsync().await()
                         // Clean up resources.
                         profile = null
-                        account.close()
+                        FirefoxAccountRegistry.account!!.close()
                         // Delete persisted state.
                         getAccountStorage().clear()
                         // Re-initialize account.
-                        account = createAccount(config)
+                        FirefoxAccountRegistry.account = createAccount(config)
 
                         notifyObservers { onLoggedOut() }
 
                         null
                     }
                     Event.AccountNotFound -> {
-                        account = createAccount(config)
+                        FirefoxAccountRegistry.account = createAccount(config)
 
                         null
                     }
@@ -389,7 +395,7 @@ open class FxaAccountManager(
                         return doAuthenticate()
                     }
                     is Event.Pair -> {
-                        val url = account.beginPairingFlowAsync(via.pairingUrl, scopes).await()
+                        val url = FirefoxAccountRegistry.account!!.beginPairingFlowAsync(via.pairingUrl, scopes).await()
                         if (url == null) {
                             oauthObservers.notifyObservers { onError() }
                             return Event.FailedToAuthenticate
@@ -404,46 +410,46 @@ open class FxaAccountManager(
                 when (via) {
                     is Event.Authenticated -> {
                         logger.info("Registering persistence callback")
-                        account.registerPersistenceCallback(statePersistenceCallback)
+                        FirefoxAccountRegistry.account!!.registerPersistenceCallback(statePersistenceCallback)
 
                         logger.info("Completing oauth flow")
-                        account.completeOAuthFlowAsync(via.code, via.state).await()
+                        FirefoxAccountRegistry.account!!.completeOAuthFlowAsync(via.code, via.state).await()
 
                         logger.info("Registering device constellation observer")
-                        account.deviceConstellation().register(deviceEventsIntegration)
+                        FirefoxAccountRegistry.account!!.deviceConstellation().register(deviceEventsIntegration)
 
                         logger.info("Initializing device")
                         // NB: underlying API is expected to 'ensureCapabilities' as part of device initialization.
-                        account.deviceConstellation().initDeviceAsync(
+                        FirefoxAccountRegistry.account!!.deviceConstellation().initDeviceAsync(
                             deviceTuple.name, deviceTuple.type, deviceTuple.capabilities
                         ).await()
 
                         logger.info("Starting periodic refresh of the device constellation")
-                        account.deviceConstellation().startPeriodicRefresh()
+                        FirefoxAccountRegistry.account!!.deviceConstellation().startPeriodicRefresh()
 
-                        notifyObservers { onAuthenticated(account) }
+                        notifyObservers { onAuthenticated(FirefoxAccountRegistry.account!!) }
 
                         Event.FetchProfile
                     }
                     Event.AccountRestored -> {
                         logger.info("Registering persistence callback")
-                        account.registerPersistenceCallback(statePersistenceCallback)
+                        FirefoxAccountRegistry.account!!.registerPersistenceCallback(statePersistenceCallback)
 
                         logger.info("Registering device constellation observer")
-                        account.deviceConstellation().register(deviceEventsIntegration)
+                        FirefoxAccountRegistry.account!!.deviceConstellation().register(deviceEventsIntegration)
 
                         // If this is the first time ensuring our capabilities,
                         logger.info("Ensuring device capabilities...")
-                        if (account.deviceConstellation().ensureCapabilitiesAsync(deviceTuple.capabilities).await()) {
+                        if (FirefoxAccountRegistry.account!!.deviceConstellation().ensureCapabilitiesAsync(deviceTuple.capabilities).await()) {
                             logger.info("Successfully ensured device capabilities.")
                         } else {
                             logger.warn("Failed to ensure device capabilities.")
                         }
 
                         logger.info("Starting periodic refresh of the device constellation")
-                        account.deviceConstellation().startPeriodicRefresh()
+                        FirefoxAccountRegistry.account!!.deviceConstellation().startPeriodicRefresh()
 
-                        notifyObservers { onAuthenticated(account) }
+                        notifyObservers { onAuthenticated(FirefoxAccountRegistry.account!!) }
 
                         Event.FetchProfile
                     }
@@ -451,21 +457,21 @@ open class FxaAccountManager(
                         // This path is a blend of "authenticated" and "account restored".
                         // We need to re-initialize an fxa device, but we don't need to complete an auth.
                         logger.info("Registering persistence callback")
-                        account.registerPersistenceCallback(statePersistenceCallback)
+                        FirefoxAccountRegistry.account!!.registerPersistenceCallback(statePersistenceCallback)
 
                         logger.info("Registering device constellation observer")
-                        account.deviceConstellation().register(deviceEventsIntegration)
+                        FirefoxAccountRegistry.account!!.deviceConstellation().register(deviceEventsIntegration)
 
                         logger.info("Initializing device")
                         // NB: underlying API is expected to 'ensureCapabilities' as part of device initialization.
-                        account.deviceConstellation().initDeviceAsync(
+                        FirefoxAccountRegistry.account!!.deviceConstellation().initDeviceAsync(
                                 deviceTuple.name, deviceTuple.type, deviceTuple.capabilities
                         ).await()
 
                         logger.info("Starting periodic refresh of the device constellation")
-                        account.deviceConstellation().startPeriodicRefresh()
+                        FirefoxAccountRegistry.account!!.deviceConstellation().startPeriodicRefresh()
 
-                        notifyObservers { onAuthenticated(account) }
+                        notifyObservers { onAuthenticated(FirefoxAccountRegistry.account!!) }
 
                         Event.FetchProfile
                     }
@@ -474,7 +480,7 @@ open class FxaAccountManager(
                         // https://github.com/mozilla/application-services/issues/483
                         logger.info("Fetching profile...")
 
-                        profile = account.getProfileAsync(true).await()
+                        profile = FirefoxAccountRegistry.account!!.getProfileAsync(true).await()
                         if (profile == null) {
                             return Event.FailedToFetchProfile
                         }
@@ -515,7 +521,7 @@ open class FxaAccountManager(
                         // We request an access token for a "profile" scope since that's the only
                         // scope we're guaranteed to have at this point. That is, we don't rely on
                         // passed-in application-specific scopes.
-                        when (account.checkAuthorizationStatusAsync(PROFILE_SCOPE).await()) {
+                        when (FirefoxAccountRegistry.account!!.checkAuthorizationStatusAsync(PROFILE_SCOPE).await()) {
                             true -> {
                                 logger.info("Able to recover from an auth problem.")
 
@@ -536,11 +542,11 @@ open class FxaAccountManager(
 
                                 // Clean up resources.
                                 profile = null
-                                account.close()
+                                FirefoxAccountRegistry.account!!.close()
                                 // Delete persisted state.
                                 getAccountStorage().clear()
                                 // Re-initialize account.
-                                account = createAccount(config)
+                                FirefoxAccountRegistry.account = createAccount(config)
 
                                 // Finally, tell our listeners we're in a bad auth state.
                                 notifyObservers { onAuthenticationProblems() }
@@ -556,7 +562,9 @@ open class FxaAccountManager(
     }
 
     private suspend fun doAuthenticate(): Event? {
-        val url = account.beginOAuthFlowAsync(scopes, true).await()
+        val url = FirefoxAccountRegistry.account!!.beginOAuthFlowAsync(
+            scopes, true
+        ).await()
         if (url == null) {
             oauthObservers.notifyObservers { onError() }
             return Event.FailedToAuthenticate

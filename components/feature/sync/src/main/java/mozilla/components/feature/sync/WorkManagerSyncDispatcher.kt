@@ -23,7 +23,9 @@ import mozilla.components.concept.sync.AuthException
 import mozilla.components.concept.sync.OAuthAccount
 import mozilla.components.concept.sync.SyncStatus
 import mozilla.components.concept.sync.SyncStatusObserver
+import mozilla.components.service.fxa.FirefoxAccount
 import mozilla.components.service.fxa.SharedPrefAccountStorage
+import mozilla.components.service.fxa.manager.FirefoxAccountRegistry
 import mozilla.components.service.fxa.manager.authErrorRegistry
 import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.base.observer.Observable
@@ -78,8 +80,7 @@ object WorkersLiveDataObserver {
 
 class WorkManagerSyncDispatcher(
     private val stores: Set<String>,
-    private val syncScope: String,
-    private val account: OAuthAccount
+    private val syncScope: String
 ) : SyncDispatcher, Observable<SyncStatusObserver> by ObserverRegistry(), Closeable {
     private val logger = Logger("WMSyncDispatcher")
 
@@ -176,7 +177,6 @@ class WorkManagerSyncDispatcher(
 
     private fun getWorkerData(): Data {
         val dataBuilder = Data.Builder()
-                .putString("account", account.toJSONString())
                 .putString("syncScope", syncScope)
                 .putStringArray("stores", stores.toTypedArray())
 
@@ -213,11 +213,28 @@ class WorkManagerSyncWorker(
 
         // Otherwise, proceed as normal.
         // Read all of the data we'll need to sync: account, syncScope and a map of SyncableStore objects.
-        val accountStorage = SharedPrefAccountStorage(context)
-        val account = accountStorage.read()
+
+        // First, the account. Ideally it'll be accessible in-memory via a singleton, but we can fallback
+        // to reading it from disk as well. An in-memory account instance will have a populated access
+        // token cache, which will lessen the load on the FxA servers. Otherwise, if we're using a
+        // deserialized account from storage, we'll need to fetch access token from servers.
+        val inMemoryAccount = FirefoxAccountRegistry.account
+        val account = if (inMemoryAccount != null) {
+            logger.info("Using an in-memory FirefoxAccount instance")
+            inMemoryAccount
+        } else {
+            // This is our fallback if we can't access an account instance directly.
+            val persistedAccount = SharedPrefAccountStorage(context).read()
+            if (persistedAccount != null) {
+                logger.info("Using a deserialized FirefoxAccount instance")
+                persistedAccount
+            } else {
+                logger.warn("Couldn't obtain an account instance")
                 // Account must have disappeared in the time between this task being scheduled and executed.
                 // A "logout" is expected to cancel pending sync tasks, but that isn't guaranteed.
-                ?: return Result.failure()
+                return Result.failure()
+            }
+        }
         val syncScope = params.inputData.getString("syncScope")!!
         val syncableStores = params.inputData.getStringArray("stores")!!.associate {
             it to GlobalSyncableStoreProvider.getStore(it)!!

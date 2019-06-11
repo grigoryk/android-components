@@ -58,8 +58,8 @@ class BackgroundSyncManager(
         WorkersLiveDataObserver.init()
     }
 
-    override fun createDispatcher(stores: Set<String>, account: OAuthAccount): SyncDispatcher {
-        return WorkManagerSyncDispatcher(stores, syncScope, account)
+    override fun createDispatcher(stores: Set<String>): SyncDispatcher {
+        return WorkManagerSyncDispatcher(stores, syncScope)
     }
 
     override fun dispatcherUpdated(dispatcher: SyncDispatcher) {
@@ -104,7 +104,6 @@ abstract class GeneralSyncManager : SyncManager, Observable<SyncStatusObserver> 
 
     open val logger = Logger("GeneralSyncManager")
 
-    private var account: OAuthAccount? = null
     private val stores = mutableSetOf<String>()
 
     // A SyncDispatcher instance bound to an account and a set of syncable stores.
@@ -113,39 +112,26 @@ abstract class GeneralSyncManager : SyncManager, Observable<SyncStatusObserver> 
     override fun addStore(name: String) = synchronized(this) {
         logger.debug("Adding store: $name")
         stores.add(name)
-        account?.let {
-            syncDispatcher = newDispatcher(syncDispatcher, stores, it)
-            initDispatcher(syncDispatcher!!)
-        }
-        Unit
+        syncDispatcher = newDispatcher(syncDispatcher, stores)
+        initDispatcher(syncDispatcher!!)
     }
 
     override fun removeStore(name: String) = synchronized(this) {
         logger.debug("Removing store: $name")
         stores.remove(name)
-        account?.let {
-            syncDispatcher = newDispatcher(syncDispatcher, stores, it)
-            initDispatcher(syncDispatcher!!)
-        }
-        Unit
+        syncDispatcher = newDispatcher(syncDispatcher, stores)
+        initDispatcher(syncDispatcher!!)
     }
 
     override fun authenticated(account: OAuthAccount) = synchronized(this) {
         logger.debug("Authenticated")
-        this.account = account
-        syncDispatcher = newDispatcher(syncDispatcher, stores, account)
+        syncDispatcher = newDispatcher(syncDispatcher, stores)
         initDispatcher(syncDispatcher!!)
         logger.debug("set and initialized new dispatcher: $syncDispatcher")
     }
 
     override fun loggedOut() = synchronized(this) {
         logger.debug("Logging out")
-        // We might have never had a chance to initialize the account/dispatcher (e.g. during auth
-        // problems while restoring an account on startup). Bail out.
-        if (account == null) {
-            return@synchronized
-        }
-        account = null
         syncDispatcher!!.stopPeriodicSync()
         syncDispatcher!!.close()
         syncDispatcher = null
@@ -169,7 +155,7 @@ abstract class GeneralSyncManager : SyncManager, Observable<SyncStatusObserver> 
         return false
     }
 
-    abstract fun createDispatcher(stores: Set<String>, account: OAuthAccount): SyncDispatcher
+    abstract fun createDispatcher(stores: Set<String>): SyncDispatcher
 
     abstract fun dispatcherUpdated(dispatcher: SyncDispatcher)
 
@@ -191,8 +177,7 @@ abstract class GeneralSyncManager : SyncManager, Observable<SyncStatusObserver> 
 
     private fun newDispatcher(
         currentDispatcher: SyncDispatcher?,
-        stores: Set<String>,
-        account: OAuthAccount
+        stores: Set<String>
     ): SyncDispatcher {
         // Let the existing dispatcher, if present, cleanup.
         currentDispatcher?.close()
@@ -201,7 +186,7 @@ abstract class GeneralSyncManager : SyncManager, Observable<SyncStatusObserver> 
         currentDispatcher?.unregister(this)
 
         // Create a new dispatcher bound to current stores and account.
-        return createDispatcher(stores, account)
+        return createDispatcher(stores)
     }
 
     private fun initDispatcher(dispatcher: SyncDispatcher) {

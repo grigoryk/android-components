@@ -20,10 +20,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import mozilla.components.concept.sync.ConstellationState
-import mozilla.components.concept.sync.DeviceConstellation
 import mozilla.components.concept.sync.DeviceConstellationObserver
 import mozilla.components.concept.sync.DeviceEvent
 import mozilla.components.concept.sync.DeviceEventsObserver
+import mozilla.components.service.fxa.DeviceManagerProvider
 import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.base.observer.Observable
 import mozilla.components.support.base.observer.ObserverRegistry
@@ -35,7 +35,6 @@ import java.util.concurrent.TimeUnit
  * exposed via an observable interface.
  */
 internal open class PollingDeviceManager(
-    private val constellation: DeviceConstellation,
     private val scope: CoroutineScope,
     private val deviceObserverRegistry: ObserverRegistry<DeviceConstellationObserver>
 ) : Observable<DeviceEventsObserver> by ObserverRegistry() {
@@ -60,6 +59,11 @@ internal open class PollingDeviceManager(
     fun pollAsync(): Deferred<Boolean> {
         return scope.async {
             logger.debug("poll")
+            val constellation = FirefoxAccountRegistry.constellation
+            if (constellation == null) {
+                logger.warn("Couldn't obtain reference to constellation")
+                return@async false
+            }
             constellation.pollForEventsAsync().await()?.let {
                 processEvents(it)
                 true
@@ -79,6 +83,12 @@ internal open class PollingDeviceManager(
     fun refreshDevicesAsync(): Deferred<Boolean> = synchronized(this) {
         return scope.async {
             logger.info("Refreshing device list...")
+
+            val constellation = FirefoxAccountRegistry.constellation
+            if (constellation == null) {
+                logger.warn("Couldn't obtain reference to constellation")
+                return@async false
+            }
 
             // Attempt to fetch devices, or bail out on failure.
             val allDevices = constellation.fetchAllDevicesAsync().await() ?: return@async false
@@ -148,10 +158,6 @@ internal object FxaDeviceRefreshManager : PeriodicRefreshManager {
     override fun stopRefresh() {
         WorkManager.getInstance().cancelUniqueWork(DEVICE_EVENT_POLL_WORKER)
     }
-}
-
-internal object DeviceManagerProvider {
-    var deviceManager: PollingDeviceManager? = null
 }
 
 internal class WorkManagerDeviceRefreshWorker(

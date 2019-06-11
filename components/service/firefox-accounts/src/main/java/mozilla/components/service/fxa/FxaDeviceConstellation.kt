@@ -23,11 +23,18 @@ import mozilla.components.concept.sync.DeviceEventOutgoing
 import mozilla.components.concept.sync.DeviceEventsObserver
 import mozilla.components.concept.sync.DevicePushSubscription
 import mozilla.components.concept.sync.DeviceType
-import mozilla.components.service.fxa.manager.DeviceManagerProvider
 import mozilla.components.service.fxa.manager.PollingDeviceManager
 import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.base.observer.Observable
 import mozilla.components.support.base.observer.ObserverRegistry
+
+/**
+ * Used by [WorkManagerDeviceRefreshWorker] to access deviceManager.
+ */
+internal object DeviceManagerProvider {
+    @Volatile
+    var deviceManager: PollingDeviceManager? = null
+}
 
 /**
  * Provides an implementation of [DeviceConstellation] backed by a [FirefoxAccount].
@@ -40,7 +47,7 @@ class FxaDeviceConstellation(
     private val logger = Logger("FxaDeviceConstellation")
 
     private val deviceObserverRegistry = ObserverRegistry<DeviceConstellationObserver>()
-    private val deviceManager = PollingDeviceManager(this, scope, deviceObserverRegistry)
+    private val deviceManager = PollingDeviceManager(scope, deviceObserverRegistry)
 
     init {
         DeviceManagerProvider.deviceManager = deviceManager
