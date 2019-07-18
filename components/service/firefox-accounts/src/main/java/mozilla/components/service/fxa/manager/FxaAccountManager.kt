@@ -4,7 +4,9 @@
 
 package mozilla.components.service.fxa.manager
 
+import android.content.ContentProviderClient
 import android.content.Context
+import android.net.Uri
 import androidx.annotation.GuardedBy
 import androidx.annotation.VisibleForTesting
 import androidx.lifecycle.LifecycleOwner
@@ -23,16 +25,7 @@ import mozilla.components.concept.sync.DeviceEventsObserver
 import mozilla.components.concept.sync.OAuthAccount
 import mozilla.components.concept.sync.Profile
 import mozilla.components.concept.sync.StatePersistenceCallback
-import mozilla.components.service.fxa.AccountStorage
-import mozilla.components.service.fxa.DeviceConfig
-import mozilla.components.service.fxa.FirefoxAccount
-import mozilla.components.service.fxa.FxaException
-import mozilla.components.service.fxa.FxaPanicException
-import mozilla.components.service.fxa.ServerConfig
-import mozilla.components.service.fxa.SharedPrefAccountStorage
-import mozilla.components.service.fxa.SyncAuthInfoCache
-import mozilla.components.service.fxa.SyncConfig
-import mozilla.components.service.fxa.asSyncAuthInfo
+import mozilla.components.service.fxa.*
 import mozilla.components.service.fxa.sync.SyncManager
 import mozilla.components.service.fxa.sync.SyncStatusObserver
 import mozilla.components.service.fxa.sync.WorkManagerSyncManager
@@ -171,6 +164,12 @@ open class FxaAccountManager(
                 AccountState.NotAuthenticated -> when (event) {
                     Event.Authenticate -> AccountState.NotAuthenticated
                     Event.FailedToAuthenticate -> AccountState.NotAuthenticated
+
+                    // take action, handling migration
+                    is Event.MigrateAccount -> AccountState.NotAuthenticated
+                    // we're done migrating, move to right state
+                    Event.MigratedAccount -> AccountState.AuthenticatedNoProfile
+
                     is Event.Pair -> AccountState.NotAuthenticated
                     is Event.Authenticated -> AccountState.AuthenticatedNoProfile
                     else -> null
@@ -240,6 +239,85 @@ open class FxaAccountManager(
         } else {
             logger.info("Sync is enabled")
         }
+    }
+
+    object AccountsEcosystem {
+        private const val KEY_EMAIL = "email"
+        private const val KEY_SESSION_TOKEN = "sessionToken"
+        private const val KEY_KSYNC = "kSync"
+        private const val KEY_KXSCS = "kXSCS"
+
+        private val ecosystemProviders: Map<String, String> = mapOf(
+            "org.mozilla.fennec_grisha.fxa.auth" to "signature"
+        )
+
+        fun queryAccounts(context: Context): List<MigratableAccount> {
+            return ecosystemProviders.filter {
+                isTrustedProvider(it.key)
+            }.mapNotNull { authMap ->
+                // get client
+                context.contentResolver.acquireContentProviderClient(authMap.key)?.let {
+                    authMap.key to it
+                }
+            }.mapNotNull {
+                // query client, get account obj
+                it.second.use { client ->
+                    queryForAccount(it.first, client)
+                }
+            }
+        }
+
+        private fun queryForAccount(authAuthority: String, client: ContentProviderClient): MigratableAccount? {
+            val authAuthorityUri = Uri.parse("content://$authAuthority")
+            val authStateUri = Uri.withAppendedPath(authAuthorityUri, "state")
+
+            client.query(
+                    authStateUri,
+                    arrayOf(KEY_EMAIL, KEY_SESSION_TOKEN, KEY_KSYNC, KEY_KXSCS),
+                    null, null, null
+            ).use { cursor ->
+                // Could not read account from the provider. Either it's logged out, or in a bad state.
+                if (cursor == null) {
+                    return null
+                }
+
+                cursor.moveToFirst()
+
+                val email = cursor.getString(cursor.getColumnIndex(KEY_EMAIL))
+                val sessionToken = byte2Hex(cursor.getBlob(cursor.getColumnIndex(KEY_SESSION_TOKEN)))
+                val kSync = byte2Hex(cursor.getBlob(cursor.getColumnIndex(KEY_KSYNC)))
+                val kXSCS = cursor.getString(cursor.getColumnIndex(KEY_KXSCS))
+
+                if (email != null && kXSCS != null) {
+                    return MigratableAccount(email, authAuthority, MigratableAuthInfo(
+                        sessionToken, kSync, kXSCS
+                    ))
+                }
+            }
+            return null
+        }
+
+        @Suppress("UNUSED_PARAMETER")
+        private fun isTrustedProvider(provider: String): Boolean {
+            // TODO see https://bugzilla.mozilla.org/show_bug.cgi?id=1545232 for how to implement this
+            return true
+        }
+    }
+
+    data class MigratableAuthInfo(val sessionToken: String, val kSync: String, val kXSCS: String)
+
+    data class MigratableAccount(
+        val email: String,
+        val source: String,
+        internal val authInfo: MigratableAuthInfo
+    )
+
+    fun migratableAccounts(context: Context): List<MigratableAccount> {
+        return AccountsEcosystem.queryAccounts(context)
+    }
+
+    fun migrateAccountAsync(fromAccount: MigratableAccount): Deferred<Unit> {
+        return processQueueAsync(Event.MigrateAccount(fromAccount))
     }
 
     /**
@@ -476,6 +554,19 @@ open class FxaAccountManager(
                     }
                     Event.Authenticate -> {
                         return doAuthenticate()
+                    }
+                    is Event.MigrateAccount -> {
+                        val migrationResult = account.migrateFromSessionTokenAsync(
+                            via.account.authInfo.sessionToken,
+                            via.account.authInfo.kSync,
+                            via.account.authInfo.kXSCS
+                        ).await()
+
+                        return if (migrationResult) {
+                            Event.MigratedAccount
+                        } else {
+                            null
+                        }
                     }
                     is Event.Pair -> {
                         val url = account.beginPairingFlowAsync(via.pairingUrl, scopes).await()

@@ -8,6 +8,7 @@ import mozilla.components.concept.sync.AuthException
 import mozilla.components.concept.sync.AuthExceptionType
 import mozilla.components.service.fxa.manager.authErrorRegistry
 import mozilla.components.support.base.log.logger.Logger
+import kotlin.experimental.and
 
 /**
  * Runs a provided lambda, and if that throws non-panic, non-auth FxA exception, runs [handleErrorBlock].
@@ -64,4 +65,31 @@ fun handleFxaExceptions(logger: Logger, operation: String, block: () -> Unit): B
         block()
         true
     })
+}
+
+/**
+ * Helper to convert a byte array to a hex-encoded string
+ */
+fun byte2Hex(b: ByteArray): String {
+    return byte2Hex(b, 2 * b.size)
+}
+
+fun byte2Hex(b: ByteArray, hexLength: Int): String {
+    val hs = StringBuilder(Math.max(2 * b.size, hexLength))
+    var stmp: String
+
+    for (n in 0 until hexLength - 2 * b.size) {
+        hs.append("0")
+    }
+
+    for (n in b.indices) {
+        stmp = Integer.toHexString(b[n].toInt() and 0XFF)
+
+        if (stmp.length == 1) {
+            hs.append("0")
+        }
+        hs.append(stmp)
+    }
+
+    return hs.toString()
 }

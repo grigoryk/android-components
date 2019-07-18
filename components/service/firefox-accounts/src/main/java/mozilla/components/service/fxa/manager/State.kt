@@ -45,6 +45,12 @@ internal sealed class Event {
             return this.javaClass.simpleName
         }
     }
+    data class MigrateAccount(val account: FxaAccountManager.MigratableAccount) : Event() {
+        override fun toString(): String {
+            return this.javaClass.simpleName
+        }
+    }
+    object MigratedAccount : Event()
     object RecoveredFromAuthenticationProblem : Event()
     object FetchProfile : Event()
     object FetchedProfile : Event()

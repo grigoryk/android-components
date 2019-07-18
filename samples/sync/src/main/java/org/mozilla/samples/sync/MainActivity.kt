@@ -89,13 +89,13 @@ class MainActivity :
 
         findViewById<View>(R.id.buttonSignIn).setOnClickListener {
             launch {
-                val authUrl = accountManager.beginAuthenticationAsync().await()
-                if (authUrl == null) {
-                    val txtView: TextView = findViewById(R.id.fxaStatusView)
-                    txtView.text = getString(R.string.account_error, null)
-                    return@launch
+                val accounts = accountManager.migratableAccounts(this@MainActivity)
+                val txtView: TextView = findViewById(R.id.fxaStatusView)
+                if (accounts.isEmpty()) {
+                    txtView.text = getString(R.string.account_error, "no accounts")
+                } else {
+                    accountManager.migrateAccountAsync(accounts[0]).await()
                 }
-                openWebView(authUrl)
             }
         }
 
