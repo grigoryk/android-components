@@ -6,6 +6,10 @@ package mozilla.components.feature.accounts
 
 import android.content.Context
 import androidx.annotation.VisibleForTesting
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.launch
 import mozilla.components.browser.session.SelectionAwareSessionObserver
 import mozilla.components.browser.session.Session
 import mozilla.components.browser.session.SessionManager
@@ -278,6 +282,8 @@ class FxaWebChannelFeature(
                 return null
             }
 
+            // There's currently no way for us to communicate results of this back to FxA web content.
+            // See https://github.com/mozilla/fxa/issues/3380
             accountManager.finishAuthenticationAsync(FxaAuthData(
                 authType = authType,
                 code = code,

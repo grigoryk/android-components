@@ -6,6 +6,9 @@ package mozilla.components.feature.sendtab
 
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import mozilla.components.concept.push.Bus
 import mozilla.components.concept.push.PushService
 import mozilla.components.concept.sync.AuthType
@@ -73,14 +76,16 @@ internal class PushObserver(
         logger.debug("Received new push subscription from $subscription.type")
 
         if (subscription.type == PushType.Services) {
-            accountManager.withConstellation {
-                it.setDevicePushSubscriptionAsync(
-                    DevicePushSubscription(
-                        endpoint = subscription.endpoint,
-                        publicKey = subscription.publicKey,
-                        authKey = subscription.authKey
+            CoroutineScope(Dispatchers.Main).launch {
+                accountManager.withConstellation({
+                    it.setDevicePushSubscription(
+                        DevicePushSubscription(
+                            endpoint = subscription.endpoint,
+                            publicKey = subscription.publicKey,
+                            authKey = subscription.authKey
+                        )
                     )
-                )
+                }) { logger.warn("Missing account; ignoring new push subscription" ) }
             }
         }
     }
@@ -88,8 +93,10 @@ internal class PushObserver(
     override fun onEvent(type: PushType, message: String) {
         logger.debug("Received new push message for $type")
 
-        accountManager.withConstellation {
-            it.processRawEventAsync(message)
+        CoroutineScope(Dispatchers.Main).launch {
+            accountManager.withConstellation({
+                it.processRawEvent(message)
+            }) { logger.warn("Missing account; dropping push message.") }
         }
     }
 }
@@ -132,8 +139,11 @@ internal class AccountObserver(
     }
 }
 
-internal inline fun FxaAccountManager.withConstellation(block: (DeviceConstellation) -> Unit) {
-    authenticatedAccount()?.let {
-        block(it.deviceConstellation())
+internal inline fun FxaAccountManager.withConstellation(block: (DeviceConstellation) -> Unit, orBlock: () -> Unit) {
+    val account = authenticatedAccount()
+    if (account != null) {
+        block(account.deviceConstellation())
+    } else {
+        orBlock()
     }
 }

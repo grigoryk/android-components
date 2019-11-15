@@ -72,11 +72,13 @@ class FirefoxAccountsAuthFeature(
                     val state = parsedUri.getQueryParameter("state") as String
 
                     // Notify the state machine about our success.
-                    accountManager.finishAuthenticationAsync(FxaAuthData(
-                        authType = authType,
-                        code = code,
-                        state = state
-                    ))
+                    CoroutineScope(Dispatchers.Main).launch {
+                        accountManager.finishAuthentication(FxaAuthData(
+                            authType = authType,
+                            code = code,
+                            state = state
+                        ))
+                    }
 
                     return RequestInterceptor.InterceptionResponse.Url(redirectUrl)
                 }

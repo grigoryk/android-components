@@ -21,11 +21,11 @@ interface DeviceConstellation : Observable<DeviceEventsObserver> {
      * @param capabilities A list of capabilities that the current device claims to have.
      * @return A [Deferred] that will be resolved with a success flag once operation is complete.
      */
-    fun initDeviceAsync(
+    suspend fun initDevice(
         name: String,
         type: DeviceType = DeviceType.MOBILE,
         capabilities: Set<DeviceCapability>
-    ): Deferred<Boolean>
+    ): Boolean
 
     /**
      * Ensure that all passed in [capabilities] are configured.
@@ -35,7 +35,7 @@ interface DeviceConstellation : Observable<DeviceEventsObserver> {
      * not supported.
      * @return A [Deferred] that will be resolved with a success flag once operation is complete.
      */
-    fun ensureCapabilitiesAsync(capabilities: Set<DeviceCapability>): Deferred<Boolean>
+    suspend fun ensureCapabilities(capabilities: Set<DeviceCapability>): Boolean
 
     /**
      * Current state of the constellation. May be missing if state was never queried.
@@ -55,14 +55,14 @@ interface DeviceConstellation : Observable<DeviceEventsObserver> {
      * @param context An application context, used for updating internal caches.
      * @return A [Deferred] that will be resolved with a success flag once operation is complete.
      */
-    fun setDeviceNameAsync(name: String, context: Context): Deferred<Boolean>
+    suspend fun setDeviceName(name: String, context: Context): Boolean
 
     /**
      * Set a [DevicePushSubscription] for the current device.
      * @param subscription A new [DevicePushSubscription].
      * @return A [Deferred] that will be resolved with a success flag once operation is complete.
      */
-    fun setDevicePushSubscriptionAsync(subscription: DevicePushSubscription): Deferred<Boolean>
+    suspend fun setDevicePushSubscription(subscription: DevicePushSubscription): Boolean
 
     /**
      * Send an event to a specified device.
@@ -70,21 +70,21 @@ interface DeviceConstellation : Observable<DeviceEventsObserver> {
      * @param outgoingEvent An event to send.
      * @return A [Deferred] that will be resolved with a success flag once operation is complete.
      */
-    fun sendEventToDeviceAsync(targetDeviceId: String, outgoingEvent: DeviceEventOutgoing): Deferred<Boolean>
+    suspend fun sendEventToDevice(targetDeviceId: String, outgoingEvent: DeviceEventOutgoing): Boolean
 
     /**
      * Process a raw event, obtained via a push message or some other out-of-band mechanism.
      * @param payload A raw, plaintext payload to be processed.
      * @return A [Deferred] that will be resolved with a success flag once operation is complete.
      */
-    fun processRawEventAsync(payload: String): Deferred<Boolean>
+    suspend fun processRawEvent(payload: String): Boolean
 
     /**
      * Refreshes [ConstellationState]. Registered [DeviceConstellationObserver] observers will be notified.
      *
      * @return A [Deferred] that will be resolved with a success flag once operation is complete.
      */
-    fun refreshDevicesAsync(): Deferred<Boolean>
+    suspend fun refreshDevices(): Boolean
 
     /**
      * Polls for any pending [DeviceEvent] events.
@@ -92,7 +92,7 @@ interface DeviceConstellation : Observable<DeviceEventsObserver> {
      *
      * @return A [Deferred] that will be resolved with a success flag once operation is complete.
      */
-    fun pollForEventsAsync(): Deferred<Boolean>
+    suspend fun pollForEvents(): Boolean
 }
 
 /**

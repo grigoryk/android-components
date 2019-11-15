@@ -16,9 +16,12 @@ import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.plus
+import kotlinx.coroutines.withContext
 import mozilla.appservices.syncmanager.DeviceSettings
 import mozilla.components.concept.sync.AccountObserver
 import mozilla.components.concept.sync.AuthException
+import mozilla.components.concept.sync.AuthExceptionType
 import mozilla.components.concept.sync.DeviceCapability
 import mozilla.components.concept.sync.AuthFlowUrl
 import mozilla.components.concept.sync.AuthType
@@ -56,20 +59,9 @@ import java.lang.IllegalArgumentException
 import java.lang.ref.WeakReference
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.Executors
-import kotlin.coroutines.CoroutineContext
 
-/**
- * A global registry for propagating [AuthException] errors. Components such as [SyncManager] may
- * encounter authentication problems during their normal operation, and
- * this registry is how they inform [FxaAccountManager] that these errors happened.
- *
- * [FxaAccountManager] monitors this registry, adjusts internal state accordingly, and notifies
- * registered [AccountObserver] that account needs re-authentication.
- */
-val authErrorRegistry = ObserverRegistry<AuthErrorObserver>()
-
-interface AuthErrorObserver {
-    fun onAuthErrorAsync(e: AuthException): Deferred<Unit>
+internal object GlobalAccountManager {
+    lateinit var instance: FxaAccountManager
 }
 
 /**
@@ -118,8 +110,9 @@ open class FxaAccountManager(
     private val applicationScopes: Set<String> = emptySet(),
     // We want a single-threaded execution model for our account-related "actions" (state machine side-effects).
     // That is, we want to ensure a sequential execution flow, but on a background thread.
-    private val coroutineContext: CoroutineContext = Executors
-        .newSingleThreadExecutor().asCoroutineDispatcher() + SupervisorJob()
+    private val scope: CoroutineScope = CoroutineScope(
+        Executors.newSingleThreadExecutor().asCoroutineDispatcher()
+    ) + SupervisorJob()
 ) : Closeable, Observable<AccountObserver> by ObserverRegistry() {
     private val logger = Logger("FirefoxAccountStateMachine")
 
@@ -132,30 +125,21 @@ open class FxaAccountManager(
     private val fxaOAuthObserver = FxaOAuthObserver()
     private class FxaOAuthObserver : OAuthObserver {
         @Volatile
-        lateinit var deferredAuthUrl: CompletableDeferred<String?>
+        var deferredAuthUrl: String? = null
 
         override fun onBeginOAuthFlow(authFlowUrl: AuthFlowUrl) {
-            deferredAuthUrl.complete(authFlowUrl.url)
+            deferredAuthUrl = authFlowUrl.url
         }
 
-        override fun onError() {
-            deferredAuthUrl.complete(null)
-        }
+        override fun onError() {}
     }
     private val oauthObservers = object : Observable<OAuthObserver> by ObserverRegistry() {}
     init {
         oauthObservers.register(fxaOAuthObserver)
     }
 
-    private class FxaAuthErrorObserver(val manager: FxaAccountManager) : AuthErrorObserver {
-        override fun onAuthErrorAsync(e: AuthException): Deferred<Unit> {
-            return manager.processQueueAsync(Event.AuthenticationError(e))
-        }
-    }
-    private val fxaAuthErrorObserver = FxaAuthErrorObserver(this)
-
     init {
-        authErrorRegistry.register(fxaAuthErrorObserver)
+        GlobalAccountManager.instance = this
     }
 
     private class FxaStatePersistenceCallback(
@@ -280,14 +264,9 @@ open class FxaAccountManager(
      * This may fail in case of network errors, or if provided credentials are not valid.
      * @return A deferred boolean flag indicating success (if true) of the sign-in operation.
      */
-    fun signInWithShareableAccountAsync(fromAccount: ShareableAccount): Deferred<Boolean> {
-        val stateMachineTransition = processQueueAsync(Event.SignInShareableAccount(fromAccount))
-        val result = CompletableDeferred<Boolean>()
-        CoroutineScope(coroutineContext).launch {
-            stateMachineTransition.await()
-            result.complete(authenticatedAccount() != null)
-        }
-        return result
+    fun signInWithShareableAccountAsync(fromAccount: ShareableAccount) = scope.async {
+        processQueue(Event.SignInShareableAccount(fromAccount))
+        authenticatedAccount() != null
     }
 
     /**
@@ -319,7 +298,7 @@ open class FxaAccountManager(
             manager.registerSyncStatusObserver(internalSyncStatusObserver)
             // If account is currently authenticated, 'enable' the sync manager.
             if (authenticatedAccount() != null) {
-                CoroutineScope(coroutineContext).launch {
+                scope.launch {
                     // Make sure auth-info cache is populated before starting sync manager.
                     maybeUpdateSyncAuthInfoCache()
 
@@ -375,7 +354,7 @@ open class FxaAccountManager(
     fun syncNowAsync(
         reason: SyncReason,
         debounce: Boolean = false
-    ): Deferred<Unit> = CoroutineScope(coroutineContext).async {
+    ): Deferred<Unit> = scope.async {
         // Make sure auth cache is populated before we try to sync.
         maybeUpdateSyncAuthInfoCache()
 
@@ -399,9 +378,9 @@ open class FxaAccountManager(
     /**
      * Call this after registering your observers, and before interacting with this class.
      */
-    fun initAsync(): Deferred<Unit> {
-        statePersistenceCallback = FxaStatePersistenceCallback(WeakReference(this))
-        return processQueueAsync(Event.Init)
+    fun initAsync() = scope.async {
+        statePersistenceCallback = FxaStatePersistenceCallback(WeakReference(this@FxaAccountManager))
+        processQueue(Event.Init)
     }
 
     /**
@@ -442,19 +421,16 @@ open class FxaAccountManager(
         }
     }
 
-    fun updateProfileAsync(): Deferred<Unit> {
-        return processQueueAsync(Event.FetchProfile)
+    fun updateProfileAsync() = scope.async {
+        processQueue(Event.FetchProfile)
     }
 
-    fun beginAuthenticationAsync(pairingUrl: String? = null): Deferred<String?> {
-        val deferredAuthUrl = CompletableDeferred<String?>()
-
-        // Observer will 'complete' this deferred once state machine resolves its events.
-        fxaOAuthObserver.deferredAuthUrl = deferredAuthUrl
-
+    fun beginAuthenticationAsync(pairingUrl: String? = null) = scope.async {
         val event = if (pairingUrl != null) Event.Pair(pairingUrl) else Event.Authenticate
-        processQueueAsync(event)
-        return deferredAuthUrl
+        processQueue(event)
+
+        // Return deferredAuthUrl as it was "observed" during state machine transitions.
+        fxaOAuthObserver.deferredAuthUrl
     }
 
     /**
@@ -470,32 +446,26 @@ open class FxaAccountManager(
      *
      * @return A deferred boolean flag indicating if authentication state was accepted.
      */
-    fun finishAuthenticationAsync(authData: FxaAuthData): Deferred<Boolean> {
-        val result = CompletableDeferred<Boolean>()
-
+    fun finishAuthenticationAsync(authData: FxaAuthData): Deferred<Boolean> = scope.async {
         when {
             latestAuthState == null -> {
                 logger.warn("Trying to finish authentication that was never started.")
-                result.complete(false)
+                false
             }
             authData.state != latestAuthState -> {
                 logger.warn("Trying to finish authentication for an invalid auth state; ignoring.")
-                result.complete(false)
+                false
             }
             authData.state == latestAuthState -> {
-                CoroutineScope(coroutineContext).launch {
-                    processQueueAsync(Event.Authenticated(authData)).await()
-                    result.complete(true)
-                }
+                processQueue(Event.Authenticated(authData))
+                true
             }
             else -> throw IllegalStateException("Unexpected finishAuthenticationAsync state")
         }
-
-        return result
     }
 
-    fun logoutAsync(): Deferred<Unit> {
-        return processQueueAsync(Event.Logout)
+    fun logoutAsync() = scope.async {
+        processQueue(Event.Logout)
     }
 
     fun registerForDeviceEvents(observer: DeviceEventsObserver, owner: LifecycleOwner, autoPause: Boolean) {
@@ -507,14 +477,18 @@ open class FxaAccountManager(
     }
 
     override fun close() {
-        coroutineContext.cancel()
+        scope.cancel()
         account.close()
+    }
+
+    internal suspend fun encounteredAuthError() = withContext(scope.coroutineContext) {
+        processQueue(Event.AuthenticationError(AuthException(AuthExceptionType.UNAUTHORIZED)))
     }
 
     /**
      * Pumps the state machine until all events are processed and their side-effects resolve.
      */
-    private fun processQueueAsync(event: Event): Deferred<Unit> = CoroutineScope(coroutineContext).async {
+    private suspend fun processQueue(event: Event) {
         eventQueue.add(event)
         do {
             val toProcess: Event = eventQueue.poll()!!
@@ -529,7 +503,8 @@ open class FxaAccountManager(
 
             state = transitionInto
 
-            stateActions(state, toProcess)?.let { successiveEvent ->
+            val successiveEvent = stateActions(state, toProcess)
+            if (successiveEvent != null) {
                 logger.info("Ran '$toProcess' side-effects for state $state, got successive event $successiveEvent")
                 eventQueue.add(successiveEvent)
             }
@@ -647,7 +622,7 @@ open class FxaAccountManager(
                         // Reasons this can fail:
                         // - network errors
                         // - unknown auth state
-                        //  -- authenticating via web-content; we didn't beginOAuthFlowAsync
+                        //  -- authenticating via web-content; we didn't beginOAuthFlow
                         account.completeOAuthFlowAsync(via.authData.code, via.authData.state).await()
 
                         logger.info("Registering device constellation observer")
@@ -655,9 +630,9 @@ open class FxaAccountManager(
 
                         logger.info("Initializing device")
                         // NB: underlying API is expected to 'ensureCapabilities' as part of device initialization.
-                        account.deviceConstellation().initDeviceAsync(
+                        account.deviceConstellation().initDevice(
                             deviceConfig.name, deviceConfig.type, deviceConfig.capabilities
-                        ).await()
+                        )
 
                         postAuthenticated(via.authData.authType, via.authData.declinedEngines)
 
@@ -672,7 +647,7 @@ open class FxaAccountManager(
 
                         // If this is the first time ensuring our capabilities,
                         logger.info("Ensuring device capabilities...")
-                        if (account.deviceConstellation().ensureCapabilitiesAsync(deviceConfig.capabilities).await()) {
+                        if (account.deviceConstellation().ensureCapabilities(deviceConfig.capabilities)) {
                             logger.info("Successfully ensured device capabilities.")
                         } else {
                             logger.warn("Failed to ensure device capabilities.")
@@ -691,9 +666,9 @@ open class FxaAccountManager(
 
                         logger.info("Initializing device")
                         // NB: underlying API is expected to 'ensureCapabilities' as part of device initialization.
-                        account.deviceConstellation().initDeviceAsync(
+                        account.deviceConstellation().initDevice(
                                 deviceConfig.name, deviceConfig.type, deviceConfig.capabilities
-                        ).await()
+                        )
 
                         postAuthenticated(AuthType.Shared)
 
@@ -711,9 +686,9 @@ open class FxaAccountManager(
 
                         logger.info("Initializing device")
                         // NB: underlying API is expected to 'ensureCapabilities' as part of device initialization.
-                        account.deviceConstellation().initDeviceAsync(
+                        account.deviceConstellation().initDevice(
                                 deviceConfig.name, deviceConfig.type, deviceConfig.capabilities
-                        ).await()
+                        )
 
                         postAuthenticated(AuthType.Recovered)
 
@@ -830,7 +805,7 @@ open class FxaAccountManager(
     }
 
     private suspend fun doAuthenticate(): Event? {
-        val authFlowUrl = account.beginOAuthFlowAsync(scopes).await()
+        val authFlowUrl = account.beginOAuthFlow(scopes)
         if (authFlowUrl == null) {
             oauthObservers.notifyObservers { onError() }
             return Event.FailedToAuthenticate
@@ -878,14 +853,14 @@ open class FxaAccountManager(
         // If device supports SEND_TAB...
         if (deviceConfig.capabilities.contains(DeviceCapability.SEND_TAB)) {
             // ... update constellation state, and poll for any pending device events.
-            account.deviceConstellation().refreshDevicesAsync().await()
-            account.deviceConstellation().pollForEventsAsync().await()
+            account.deviceConstellation().refreshDevices()
+            account.deviceConstellation().pollForEvents()
         }
     }
 
     @VisibleForTesting
     open fun createAccount(config: ServerConfig): OAuthAccount {
-        return FirefoxAccount(config)
+        return FirefoxAccount(config, scope.coroutineContext)
     }
 
     @VisibleForTesting

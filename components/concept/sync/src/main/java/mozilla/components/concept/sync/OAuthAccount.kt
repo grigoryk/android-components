@@ -36,7 +36,7 @@ class AuthException(type: AuthExceptionType, cause: Exception? = null) : Throwab
 /**
  * An object that represents a login flow initiated by [OAuthAccount].
  * @property state OAuth state parameter, identifying a specific authentication flow.
- * This string is randomly generated during [OAuthAccount.beginOAuthFlowAsync] and [OAuthAccount.beginPairingFlowAsync].
+ * This string is randomly generated during [OAuthAccount.beginOAuthFlow] and [OAuthAccount.beginPairingFlowAsync].
  * @property url Url which needs to be loaded to go through the authentication flow identified by [state].
  */
 data class AuthFlowUrl(val state: String, val url: String)
@@ -53,7 +53,7 @@ interface OAuthAccount : AutoCloseable {
      * @param scopes List of OAuth scopes for which the client wants access
      * @return Deferred AuthFlowUrl that resolves to the flow URL when complete
      */
-    fun beginOAuthFlowAsync(scopes: Set<String>): Deferred<AuthFlowUrl?>
+    suspend fun beginOAuthFlow(scopes: Set<String>): AuthFlowUrl?
 
     /**
      * Constructs a URL used to begin the pairing flow for the requested scopes and pairingUrl.
@@ -88,12 +88,12 @@ interface OAuthAccount : AutoCloseable {
      * the code can be exchanged for a refresh token to be used offline or not
      * @return the authorized auth code string
      */
-    fun authorizeOAuthCode(
+    fun authorizeOAuthCodeAsync(
         clientId: String,
         scopes: Array<String>,
         state: String,
         accessType: AccessType = AccessType.ONLINE
-    ): String?
+    ): Deferred<String?>
 
     /**
      * Fetches the profile object for the current client either from the existing cached state
@@ -106,7 +106,7 @@ interface OAuthAccount : AutoCloseable {
 
     /**
      * Authenticates the current account using the [code] and [state] parameters obtained via the
-     * OAuth flow initiated by [beginOAuthFlowAsync].
+     * OAuth flow initiated by [beginOAuthFlow].
      *
      * Modifies the FirefoxAccount state.
      * @param code OAuth code string

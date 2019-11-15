@@ -4,38 +4,19 @@
 
 package mozilla.components.service.fxa
 
-import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.Deferred
 import mozilla.components.concept.sync.AuthException
-import mozilla.components.service.fxa.manager.AuthErrorObserver
-import mozilla.components.service.fxa.manager.authErrorRegistry
+import mozilla.components.service.fxa.manager.FxaAccountManager
+import mozilla.components.service.fxa.manager.GlobalAccountManager
 import mozilla.components.support.test.mock
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
-import org.junit.Before
 import org.junit.Test
+import org.mockito.Mockito.verifyZeroInteractions
 
 class UtilsKtTest {
-    private class TestAuthErrorObserver : AuthErrorObserver {
-        var lastError: AuthException? = null
-
-        override fun onAuthErrorAsync(e: AuthException): Deferred<Unit> {
-            lastError = e
-            // unit completable starts off in a non-active state.
-            val done = CompletableDeferred<Unit>()
-            done.complete(Unit)
-            return done
-        }
-    }
-
-    @Before
-    fun cleanup() {
-        authErrorRegistry.unregisterObservers()
-    }
-
     @Test
     fun `handleFxaExceptions form 1 returns correct data back`() {
         assertEquals(1, handleFxaExceptions(mock(), "test op", {
@@ -49,8 +30,8 @@ class UtilsKtTest {
 
     @Test
     fun `handleFxaExceptions form 1 does not swallow non-panics`() {
-        val authErrorObserver = TestAuthErrorObserver()
-        authErrorRegistry.register(authErrorObserver)
+        val accountManager: FxaAccountManager = mock()
+        GlobalAccountManager.instance = accountManager
 
         // Network.
         assertEquals("pass!", handleFxaExceptions(mock(), "test op", {
@@ -61,7 +42,7 @@ class UtilsKtTest {
             "pass!"
         }))
 
-        assertNull(authErrorObserver.lastError)
+        verifyZeroInteractions(accountManager)
 
         assertEquals("pass!", handleFxaExceptions(mock(), "test op", {
             throw FxaUnauthorizedException("auth!")

@@ -73,10 +73,10 @@ class SendTabUseCases(
                     it.id == deviceId
                 }
                 device?.let {
-                    return constellation.sendEventToDeviceAsync(
+                    return constellation.sendEventToDevice(
                         device.id,
                         SendTab(tab.title, tab.url)
-                    ).await()
+                    )
                 }
             }
 
@@ -129,10 +129,10 @@ class SendTabUseCases(
                 // Get a list of device-tab combinations that we want to send.
                 return block(devices).map { (device, tab) ->
                     // Send the tab!
-                    constellation.sendEventToDeviceAsync(
+                    constellation.sendEventToDevice(
                         device.id,
                         SendTab(tab.title, tab.url)
-                    ).await()
+                    )
                 }.fold(true) { acc, result ->
                     // Collect the results and reduce them into one final result.
                     acc and result

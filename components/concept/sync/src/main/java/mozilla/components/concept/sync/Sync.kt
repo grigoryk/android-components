@@ -53,7 +53,7 @@ interface LockableStore : SyncableStore {
      * to key the store.
      * @param block A lambda to execute while the store is unlocked.
      */
-    suspend fun <T> unlocked(encryptionKey: String, block: (store: LockableStore) -> T): T
+    suspend fun <T> unlocked(encryptionKey: String, block: suspend (store: LockableStore) -> T): T
 }
 
 /**

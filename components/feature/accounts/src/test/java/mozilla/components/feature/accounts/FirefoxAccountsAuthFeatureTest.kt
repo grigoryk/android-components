@@ -208,7 +208,7 @@ class FirefoxAccountsAuthFeatureTest {
         val profile = Profile(uid = "testUID", avatar = null, email = "test@example.com", displayName = "test profile")
 
         `when`(mockAccount.getProfileAsync(anyBoolean())).thenReturn(CompletableDeferred(profile))
-        `when`(mockAccount.beginOAuthFlowAsync(any())).thenReturn(CompletableDeferred(AuthFlowUrl("authState", "auth://url")))
+        `when`(mockAccount.beginOAuthFlow(any())).thenReturn(CompletableDeferred(AuthFlowUrl("authState", "auth://url")))
         `when`(mockAccount.beginPairingFlowAsync(anyString(), any())).thenReturn(CompletableDeferred(AuthFlowUrl("authState", "auth://url")))
         `when`(mockAccount.completeOAuthFlowAsync(anyString(), anyString())).thenReturn(CompletableDeferred(true))
 
@@ -233,7 +233,7 @@ class FirefoxAccountsAuthFeatureTest {
 
         `when`(mockAccount.getProfileAsync(anyBoolean())).thenReturn(CompletableDeferred(profile))
 
-        `when`(mockAccount.beginOAuthFlowAsync(any())).thenReturn(CompletableDeferred(value = null))
+        `when`(mockAccount.beginOAuthFlow(any())).thenReturn(CompletableDeferred(value = null))
         `when`(mockAccount.beginPairingFlowAsync(anyString(), any())).thenReturn(CompletableDeferred(value = null))
         `when`(mockAccount.completeOAuthFlowAsync(anyString(), anyString())).thenReturn(CompletableDeferred(true))
 

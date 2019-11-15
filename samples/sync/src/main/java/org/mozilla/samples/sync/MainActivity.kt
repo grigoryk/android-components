@@ -116,7 +116,7 @@ class MainActivity :
         }
 
         findViewById<View>(R.id.refreshDevice).setOnClickListener {
-            launch { accountManager.authenticatedAccount()?.deviceConstellation()?.refreshDevicesAsync()?.await() }
+            launch { accountManager.authenticatedAccount()?.deviceConstellation()?.refreshDevices() }
         }
 
         findViewById<View>(R.id.sendTab).setOnClickListener {
@@ -128,9 +128,9 @@ class MainActivity :
                     }
 
                     targets?.forEach {
-                        constellation.sendEventToDeviceAsync(
+                        constellation.sendEventToDevice(
                             it.id, DeviceEventOutgoing.SendTab("Sample tab", "https://www.mozilla.org")
-                        ).await()
+                        )
                     }
 
                     Toast.makeText(
@@ -168,9 +168,7 @@ class MainActivity :
     override fun onLoginComplete(code: String, state: String, action: String, fragment: LoginFragment) {
         launch {
             supportFragmentManager.popBackStack()
-            accountManager.finishAuthenticationAsync(
-                FxaAuthData(action.toAuthType(), code = code, state = state)
-            ).await()
+            accountManager.finishAuthenticationAsync(FxaAuthData(action.toAuthType(), code = code, state = state)).await()
         }
     }
 
