@@ -4,7 +4,12 @@
 
 package mozilla.components.support.migration
 
+import android.accounts.Account
+import android.accounts.AccountManager
+import android.annotation.SuppressLint
 import android.content.Context
+import android.os.Build
+import mozilla.components.lib.crash.CrashReporter
 import mozilla.components.service.fxa.manager.FxaAccountManager
 import mozilla.components.service.fxa.sharing.ShareableAccount
 import mozilla.components.service.fxa.sharing.ShareableAuthInfo
@@ -164,11 +169,23 @@ internal object FennecFxaMigration {
      * Performs a migration of Fennec's FxA state located in [fxaStateFile].
      */
     suspend fun migrate(
+        crashReporter: CrashReporter,
         fxaStateFile: File,
         context: Context,
         accountManager: FxaAccountManager
     ): Result<FxaMigrationResult> {
         logger.debug("Migrating Fennec account at ${fxaStateFile.absolutePath}")
+
+        // Regardless of what the state of fennecAccount is, and whether fxaStateFile exists or not, we need to remove
+        // any mention of an account from the system's account manager. It's possible (although, unlikely) that we won't
+        // have Fennec's "pickle file" (what's referred here as a fxaStateFile), and still have a system account around.
+        @Suppress("TooGenericExceptionCaught")
+        try {
+            removeSystemAccount(context)
+        } catch (e: Exception) {
+            logger.error("Unexpected error cleaning up system account", e)
+            crashReporter.submitCaughtException(e)
+        }
 
         if (!fxaStateFile.exists()) {
             return Result.Success(FxaMigrationResult.Success.NoAccount)
@@ -187,6 +204,53 @@ internal object FennecFxaMigration {
             }
         } catch (e: FxaMigrationException) {
             Result.Failure(e)
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun removeSystemAccount(context: Context) {
+        val systemAccountManager = AccountManager.get(context)
+
+        // To remove an account, we need to know account name and account type.
+        // Account name is an email (but, we'll just get it from the system), and account type is
+        // @ANDROID_PACKAGE_NAME@_fxaccount".
+        val systemAccountType = "${context.packageName}_fxaccount"
+        logger.debug("system account type $systemAccountType")
+
+        // NB: 'getAccountsByType' and 'removeAccount' require GET_ACCOUNTS permission to be declared in the manifest.
+        val systemAccounts = systemAccountManager.getAccountsByType(systemAccountType)
+
+//        val account = Account("gkruglov@mozilla.com", systemAccountType)
+//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+//            systemAccountManager.setAccountVisibility(account, context.packageName, AccountManager.VISIBILITY_VISIBLE)
+//        }
+
+        // the size is 0 :(
+        logger.debug("got system accounts $systemAccounts - ${systemAccounts.size}")
+        systemAccounts.forEach {
+//        account.also {
+            logger.debug("processing ${it.name} of type ${it.type}")
+            // System account renewal is a best-effort attempt. Ignore the failures since we can't do much about them.
+            @Suppress("TooGenericExceptionCaught", "Deprecation")
+            val future = systemAccountManager.removeAccount(it, { removalFuture ->
+                logger.info("got removal future")
+                val result = try {
+                    removalFuture.result && removalFuture.isDone && !removalFuture.isCancelled
+                } catch (e: Exception) {
+                    logger.error("Failed to check for system account removal status", e)
+                    return@removeAccount
+                }
+                if (result) {
+                    logger.info("Removed old system account.")
+                } else {
+                    // 'Maybe' because we don't bother waiting for the future result above.
+                    logger.warn("Maybe failed to remove old system account.")
+                }
+            }, null) // null handler means 'post callback future to main thread'.
+
+            while (!future.isDone) {
+                logger.debug("Waiting fot removal to complete...")
+            }
         }
     }
 

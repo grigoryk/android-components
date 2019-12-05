@@ -587,7 +587,7 @@ class FennecMigrator private constructor(
     }
 
     private suspend fun migrateFxA(): Result<FxaMigrationResult> {
-        val result = FennecFxaMigration.migrate(fxaState!!, context, accountManager!!)
+        val result = FennecFxaMigration.migrate(crashReporter, fxaState!!, context, accountManager!!)
 
         if (result is Result.Failure<FxaMigrationResult>) {
             val migrationFailureWrapper = result.throwables.first() as FxaMigrationException
