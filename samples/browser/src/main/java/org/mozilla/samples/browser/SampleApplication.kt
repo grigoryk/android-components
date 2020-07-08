@@ -18,6 +18,7 @@ import mozilla.components.support.base.facts.processor.LogFactProcessor
 import mozilla.components.support.base.log.Log
 import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.base.log.sink.AndroidLogSink
+import mozilla.components.support.base.log.sink.StorageLogSink
 import mozilla.components.support.ktx.android.content.isMainProcess
 import mozilla.components.support.ktx.android.content.runOnlyInMainProcess
 import mozilla.components.support.rustlog.RustLog
@@ -35,6 +36,7 @@ class SampleApplication : Application() {
         RustLog.enable()
 
         Log.addSink(AndroidLogSink())
+        Log.addSink(StorageLogSink(this))
 
         if (!isMainProcess()) {
             return
