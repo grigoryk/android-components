@@ -49,7 +49,7 @@ object Versions {
         const val test = "1.3.0"
         const val test_ext = "1.1.2"
         const val espresso = "3.3.0"
-        const val room = "2.2.5"
+        const val room = "2.2.6"
         const val paging = "2.1.2"
         const val palette = "1.0.0"
         const val lifecycle = "2.2.0"
