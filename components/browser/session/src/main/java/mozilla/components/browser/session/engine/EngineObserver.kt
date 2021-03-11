@@ -32,7 +32,7 @@ import mozilla.components.concept.engine.manifest.WebAppManifest
 import mozilla.components.concept.engine.media.RecordingDevice
 import mozilla.components.concept.engine.mediasession.MediaSession
 import mozilla.components.concept.engine.permission.PermissionRequest
-import mozilla.components.concept.engine.prompt.PromptRequest
+import mozilla.components.concept.engine.prompt.WebPromptRequest
 import mozilla.components.concept.engine.window.WindowRequest
 import mozilla.components.concept.fetch.Response
 import mozilla.components.lib.state.Store
@@ -277,7 +277,7 @@ internal class EngineObserver(
         )
     }
 
-    override fun onPromptRequest(promptRequest: PromptRequest) {
+    override fun onPromptRequest(promptRequest: WebPromptRequest) {
         store?.dispatch(ContentAction.UpdatePromptRequestAction(
             session.id,
             promptRequest

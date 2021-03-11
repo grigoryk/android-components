@@ -37,9 +37,11 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.Deferred
 import mozilla.components.concept.storage.Login
+import mozilla.components.concept.storage.LoginValidationDelegate
 import mozilla.components.concept.storage.LoginValidationDelegate.Result
 import mozilla.components.feature.prompts.R
 import mozilla.components.feature.prompts.ext.onDone
+import mozilla.components.feature.prompts.login.LoginExceptions
 import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.ktx.android.content.res.resolveAttribute
 import mozilla.components.support.ktx.android.view.hideKeyboard
@@ -61,8 +63,11 @@ private const val KEY_LOGIN_HTTP_REALM = "KEY_LOGIN_HTTP_REALM"
  * [android.support.v4.app.DialogFragment] implementation to display a
  * dialog that allows users to save/update usernames and passwords for a given domain.
  */
-@Suppress("LargeClass")
-internal class SaveLoginDialogFragment : PromptDialogFragment() {
+@Suppress("TooManyFunctions", "LargeClass")
+internal class SaveLoginDialogFragment(
+    private val loginExceptionStorage: LoginExceptions,
+    private val loginValidationDelegate: LoginValidationDelegate
+) : PromptDialogFragment() {
 
     private inner class SafeArgString(private val key: String) {
         operator fun getValue(frag: SaveLoginDialogFragment, prop: KProperty<*>): String =
@@ -89,7 +94,21 @@ internal class SaveLoginDialogFragment : PromptDialogFragment() {
 
     // List of potential dupes ignoring username. We could potentially both read and write this list
     // from different threads, so we are using a copy-on-write list.
-    private var potentialDupesList: CopyOnWriteArrayList<Login>? = null
+    private var _potentialDupesList: List<Login>? = null
+
+    // We only want to fetch this list once. Since we are ignoring username the results will
+    // not change when user changes username or password fields
+    private suspend fun potentialDupesList(login: Login): List<Login> {
+        _potentialDupesList?.let {
+            return it.toList()
+        }
+
+        return loginValidationDelegate.getPotentialDupesIgnoringUsernameAsync(
+            login
+        ).await().also {
+            _potentialDupesList = it
+        }
+    }
 
     override fun shouldDismissOnLoad(): Boolean = false
 
@@ -127,7 +146,7 @@ internal class SaveLoginDialogFragment : PromptDialogFragment() {
          * show this save login dialog for any origin saved as an exception.
          */
         CoroutineScope(IO).launch {
-            if (feature?.loginExceptionStorage?.isLoginExceptionByOrigin(origin) == true) {
+            if (loginExceptionStorage.isLoginExceptionByOrigin(origin)) {
                 feature?.onCancel(sessionId)
                 dismiss()
             }
@@ -152,7 +171,7 @@ internal class SaveLoginDialogFragment : PromptDialogFragment() {
                 if (this.text == context?.getString(R.string.mozac_feature_prompt_never_save)) {
                     emitNeverSaveFact()
                     CoroutineScope(IO).launch {
-                        feature?.loginExceptionStorage?.addLoginException(origin)
+                        loginExceptionStorage.addLoginException(origin)
                     }
                 }
                 feature?.onCancel(sessionId)
@@ -309,22 +328,11 @@ internal class SaveLoginDialogFragment : PromptDialogFragment() {
 
         var validateDeferred: Deferred<Result>?
         validateStateUpdate = launch validate@{
-            val validationDelegate =
-                feature?.loginValidationDelegate ?: return@validate
-            // We only want to fetch this list once. Since we are ignoring username the results will
-            // not change when user changes username or password fields
-            if (potentialDupesList == null) {
-                this@SaveLoginDialogFragment.potentialDupesList = CopyOnWriteArrayList(
-                    validationDelegate.getPotentialDupesIgnoringUsernameAsync(
-                        login
-                    ).await()
-                )
-            }
             // Passing a copy of this potential dupes list, not a reference, so we know for certain
             // that what shouldUpdateOrCreateAsync is using can't change.
-            validateDeferred = validationDelegate.shouldUpdateOrCreateAsync(
+            validateDeferred = loginValidationDelegate.shouldUpdateOrCreateAsync(
                 login,
-                potentialDupesList?.toList()
+                potentialDupesList(login)
             )
             val result = validateDeferred?.await()
             withContext(Main) {
@@ -395,13 +403,15 @@ internal class SaveLoginDialogFragment : PromptDialogFragment() {
          * @param login represents login information on a given domain.
          * */
         fun newInstance(
+            loginExceptionStorage: LoginExceptions,
+            loginValidationDelegate: LoginValidationDelegate,
             sessionId: String,
             hint: Int,
             login: Login,
             icon: Bitmap? = null
         ): SaveLoginDialogFragment {
 
-            val fragment = SaveLoginDialogFragment()
+            val fragment = SaveLoginDialogFragment(loginExceptionStorage, loginValidationDelegate)
             val arguments = fragment.arguments ?: Bundle()
 
             with(arguments) {

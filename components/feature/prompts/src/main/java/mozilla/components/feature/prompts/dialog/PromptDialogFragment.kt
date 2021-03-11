@@ -37,18 +37,6 @@ internal abstract class PromptDialogFragment : DialogFragment() {
 internal interface Prompter {
 
     /**
-     * Validates whether or not a given Login may be stored.
-     *
-     * Logging in will not prompt a save dialog if this is left null.
-     */
-    val loginValidationDelegate: LoginValidationDelegate?
-
-    /**
-     * Stores whether a site should never be prompted for logins saving.
-     */
-    val loginExceptionStorage: LoginExceptions?
-
-    /**
      * Invoked when a dialog is dismissed. This consumes the [PromptFeature]
      * value from the session indicated by [sessionId].
      *

@@ -10,7 +10,7 @@ import android.content.Intent
 import androidx.core.net.toUri
 import androidx.test.core.app.ApplicationProvider
 import mozilla.components.browser.state.store.BrowserStore
-import mozilla.components.concept.engine.prompt.PromptRequest
+import mozilla.components.concept.engine.prompt.WebPromptRequest
 import mozilla.components.feature.prompts.PromptContainer
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -44,7 +44,7 @@ class OnDeviceFilePickerTest {
         var onSingleFileSelectedWasExecuted = false
         var onMultipleFilesSelectedWasExecuted = false
 
-        val filePickerRequest = PromptRequest.File(
+        val filePickerRequest = WebPromptRequest.File(
                 arrayOf(""),
                 isMultipleFilesSelection = true,
                 onDismiss = { onDismissWasExecuted = true },
@@ -69,7 +69,7 @@ class OnDeviceFilePickerTest {
         var onDismissWasExecuted = false
         var onSingleFileSelectedWasExecuted = false
 
-        val filePickerRequest = PromptRequest.File(
+        val filePickerRequest = WebPromptRequest.File(
                 arrayOf(""),
                 isMultipleFilesSelection = true,
                 onDismiss = { onDismissWasExecuted = true },
@@ -94,7 +94,7 @@ class OnDeviceFilePickerTest {
         var onSingleFileSelectedWasExecuted = false
         var onMultipleFilesSelectedWasExecuted = false
 
-        val filePickerRequest = PromptRequest.File(
+        val filePickerRequest = WebPromptRequest.File(
                 arrayOf(""),
                 onDismiss = { onDismissWasExecuted = true },
                 onSingleFileSelected = { _, _ -> onSingleFileSelectedWasExecuted = true },
@@ -118,7 +118,7 @@ class OnDeviceFilePickerTest {
         var onSingleFileSelectedWasExecuted = false
         var onMultipleFilesSelectedWasExecuted = false
 
-        val filePickerRequest = PromptRequest.File(
+        val filePickerRequest = WebPromptRequest.File(
                 arrayOf(""),
                 onDismiss = { onDismissWasExecuted = true },
                 onSingleFileSelected = { _, _ -> onSingleFileSelectedWasExecuted = true },

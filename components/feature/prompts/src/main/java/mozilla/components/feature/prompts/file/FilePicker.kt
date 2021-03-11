@@ -17,8 +17,8 @@ import androidx.annotation.VisibleForTesting.PRIVATE
 import androidx.fragment.app.Fragment
 import mozilla.components.browser.state.selector.findTabOrCustomTabOrSelectedTab
 import mozilla.components.browser.state.store.BrowserStore
-import mozilla.components.concept.engine.prompt.PromptRequest
-import mozilla.components.concept.engine.prompt.PromptRequest.File
+import mozilla.components.concept.engine.prompt.WebPromptRequest
+import mozilla.components.concept.engine.prompt.WebPromptRequest.File
 import mozilla.components.feature.prompts.PromptContainer
 import mozilla.components.feature.prompts.consumePromptFrom
 import mozilla.components.support.base.feature.OnNeedToRequestPermissions
@@ -56,7 +56,7 @@ internal class FilePicker(
      * Cache of the current request to be used after permission is granted.
      */
     @VisibleForTesting
-    internal var currentRequest: PromptRequest? = null
+    internal var currentRequest: WebPromptRequest? = null
 
     @Suppress("ComplexMethod")
     fun handleFileRequest(promptRequest: File, requestPermissions: Boolean = true) {
@@ -133,7 +133,7 @@ internal class FilePicker(
         return resultHandled
     }
 
-    private fun getActivePromptRequest(): PromptRequest? =
+    private fun getActivePromptRequest(): WebPromptRequest? =
             store.state.findTabOrCustomTabOrSelectedTab(sessionId)?.content?.promptRequest
 
     /**
@@ -155,7 +155,7 @@ internal class FilePicker(
 
     /**
      * Used in conjunction with [onNeedToRequestPermissions], to notify the feature
-     * that all the required permissions have been granted, and the pending [PromptRequest]
+     * that all the required permissions have been granted, and the pending [WebPromptRequest]
      * can be performed.
      *
      * If the required permission has not been granted

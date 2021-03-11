@@ -14,7 +14,8 @@ import mozilla.components.concept.engine.HitResult
 import mozilla.components.concept.engine.manifest.WebAppManifest
 import mozilla.components.concept.engine.media.RecordingDevice
 import mozilla.components.concept.engine.permission.PermissionRequest
-import mozilla.components.concept.engine.prompt.PromptRequest
+import mozilla.components.concept.engine.prompt.AppPromptRequest
+import mozilla.components.concept.engine.prompt.WebPromptRequest
 import mozilla.components.concept.engine.search.SearchRequest
 import mozilla.components.concept.engine.window.WindowRequest
 
@@ -36,7 +37,8 @@ import mozilla.components.concept.engine.window.WindowRequest
  * @property download Last unhandled download request.
  * @property share Last unhandled request to share an internet resource that first needs to be downloaded.
  * @property hitResult the target of the latest long click operation.
- * @property promptRequest the last received [PromptRequest].
+ * @property promptRequest the last received [WebPromptRequest].
+ * @property appPromptRequest the last received [AppPromptRequest].
  * @property findResults the list of results of the latest "find in page" operation.
  * @property windowRequest the last received [WindowRequest].
  * @property searchRequest the last received [SearchRequest]
@@ -74,7 +76,8 @@ data class ContentState(
     val download: DownloadState? = null,
     val share: ShareInternetResourceState? = null,
     val hitResult: HitResult? = null,
-    val promptRequest: PromptRequest? = null,
+    val promptRequest: WebPromptRequest? = null,
+    val appPromptRequest: AppPromptRequest? = null,
     val findResults: List<FindResultState> = emptyList(),
     val windowRequest: WindowRequest? = null,
     val searchRequest: SearchRequest? = null,

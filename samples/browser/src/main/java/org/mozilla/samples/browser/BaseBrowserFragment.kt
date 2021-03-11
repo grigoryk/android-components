@@ -20,7 +20,7 @@ import mozilla.components.feature.app.links.AppLinksFeature
 import mozilla.components.feature.downloads.DownloadsFeature
 import mozilla.components.feature.downloads.manager.FetchDownloadManager
 import mozilla.components.feature.privatemode.feature.SecureWindowFeature
-import mozilla.components.feature.prompts.PromptFeature
+import mozilla.components.feature.prompts.WebPromptFeature
 import mozilla.components.feature.session.CoordinateScrollingFeature
 import mozilla.components.feature.session.SessionFeature
 import mozilla.components.feature.session.SwipeRefreshFeature
@@ -53,7 +53,7 @@ abstract class BaseBrowserFragment : Fragment(), UserInteractionHandler, Activit
     private val contextMenuIntegration = ViewBoundFeatureWrapper<ContextMenuIntegration>()
     private val downloadsFeature = ViewBoundFeatureWrapper<DownloadsFeature>()
     private val appLinksFeature = ViewBoundFeatureWrapper<AppLinksFeature>()
-    private val promptFeature = ViewBoundFeatureWrapper<PromptFeature>()
+    private val promptFeature = ViewBoundFeatureWrapper<WebPromptFeature>()
     private val findInPageIntegration = ViewBoundFeatureWrapper<FindInPageIntegration>()
     private val sitePermissionsFeature = ViewBoundFeatureWrapper<SitePermissionsFeature>()
     private val swipeRefreshFeature = ViewBoundFeatureWrapper<SwipeRefreshFeature>()
@@ -154,7 +154,7 @@ abstract class BaseBrowserFragment : Fragment(), UserInteractionHandler, Activit
         )
 
         promptFeature.set(
-            feature = PromptFeature(
+            feature = WebPromptFeature(
                 fragment = this,
                 store = components.store,
                 customTabId = sessionId,

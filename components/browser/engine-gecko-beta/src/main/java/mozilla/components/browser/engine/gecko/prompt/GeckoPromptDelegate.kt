@@ -9,10 +9,10 @@ import android.net.Uri
 import androidx.annotation.VisibleForTesting
 import mozilla.components.browser.engine.gecko.GeckoEngineSession
 import mozilla.components.concept.engine.prompt.Choice
-import mozilla.components.concept.engine.prompt.PromptRequest
-import mozilla.components.concept.engine.prompt.PromptRequest.MenuChoice
-import mozilla.components.concept.engine.prompt.PromptRequest.MultipleChoice
-import mozilla.components.concept.engine.prompt.PromptRequest.SingleChoice
+import mozilla.components.concept.engine.prompt.WebPromptRequest
+import mozilla.components.concept.engine.prompt.WebPromptRequest.MenuChoice
+import mozilla.components.concept.engine.prompt.WebPromptRequest.MultipleChoice
+import mozilla.components.concept.engine.prompt.WebPromptRequest.SingleChoice
 import mozilla.components.concept.engine.prompt.ShareData
 import mozilla.components.concept.storage.Login
 import mozilla.components.support.base.log.logger.Logger
@@ -47,9 +47,9 @@ typealias GECKO_PROMPT_FILE_TYPE = PromptDelegate.FilePrompt.Type
 typealias GECKO_PROMPT_CHOICE_TYPE = PromptDelegate.ChoicePrompt.Type
 typealias GECKO_PROMPT_FILE_CAPTURE = PromptDelegate.FilePrompt.Capture
 typealias GECKO_PROMPT_SHARE_RESULT = PromptDelegate.SharePrompt.Result
-typealias AC_AUTH_LEVEL = PromptRequest.Authentication.Level
-typealias AC_AUTH_METHOD = PromptRequest.Authentication.Method
-typealias AC_FILE_FACING_MODE = PromptRequest.File.FacingMode
+typealias AC_AUTH_LEVEL = WebPromptRequest.Authentication.Level
+typealias AC_AUTH_METHOD = WebPromptRequest.Authentication.Method
+typealias AC_FILE_FACING_MODE = WebPromptRequest.File.FacingMode
 
 /**
  * Gecko-based PromptDelegate implementation.
@@ -91,7 +91,7 @@ internal class GeckoPromptDelegate(private val geckoEngineSession: GeckoEngineSe
 
         geckoEngineSession.notifyObservers {
             onPromptRequest(
-                PromptRequest.SaveLoginPrompt(
+                WebPromptRequest.SaveLoginPrompt(
                     hint = prompt.options[0].hint,
                     logins = prompt.options.map { it.value.toLogin() },
                     onConfirm = onConfirmSave,
@@ -125,7 +125,7 @@ internal class GeckoPromptDelegate(private val geckoEngineSession: GeckoEngineSe
 
         geckoEngineSession.notifyObservers {
             onPromptRequest(
-                PromptRequest.SelectLoginPrompt(
+                WebPromptRequest.SelectLoginPrompt(
                     logins = loginList,
                     onConfirm = onConfirmSelect,
                     onDismiss = onDismiss
@@ -187,7 +187,7 @@ internal class GeckoPromptDelegate(private val geckoEngineSession: GeckoEngineSe
 
         geckoEngineSession.notifyObservers {
             onPromptRequest(
-                PromptRequest.Alert(
+                WebPromptRequest.Alert(
                     title,
                     message,
                     false,
@@ -234,7 +234,7 @@ internal class GeckoPromptDelegate(private val geckoEngineSession: GeckoEngineSe
 
         geckoEngineSession.notifyObservers {
             onPromptRequest(
-                PromptRequest.File(
+                WebPromptRequest.File(
                     prompt.mimeTypes ?: emptyArray(),
                     isMultipleFilesSelection,
                     captureMode,
@@ -319,7 +319,7 @@ internal class GeckoPromptDelegate(private val geckoEngineSession: GeckoEngineSe
 
         geckoEngineSession.notifyObservers {
             onPromptRequest(
-                PromptRequest.Authentication(
+                WebPromptRequest.Authentication(
                     title,
                     message,
                     userName,
@@ -349,7 +349,7 @@ internal class GeckoPromptDelegate(private val geckoEngineSession: GeckoEngineSe
 
         geckoEngineSession.notifyObservers {
             onPromptRequest(
-                PromptRequest.TextPrompt(
+                WebPromptRequest.TextPrompt(
                     title,
                     inputLabel,
                     inputValue,
@@ -381,7 +381,7 @@ internal class GeckoPromptDelegate(private val geckoEngineSession: GeckoEngineSe
 
         geckoEngineSession.notifyObservers {
             onPromptRequest(
-                PromptRequest.Color(defaultColor, onConfirm, onDismiss)
+                WebPromptRequest.Color(defaultColor, onConfirm, onDismiss)
             )
         }
         return geckoResult
@@ -405,7 +405,7 @@ internal class GeckoPromptDelegate(private val geckoEngineSession: GeckoEngineSe
 
         geckoEngineSession.notifyObservers {
             onPromptRequest(
-                PromptRequest.Popup(prompt.targetUri ?: "", onAllow, onDeny)
+                WebPromptRequest.Popup(prompt.targetUri ?: "", onAllow, onDeny)
             )
         }
         return geckoResult
@@ -430,7 +430,7 @@ internal class GeckoPromptDelegate(private val geckoEngineSession: GeckoEngineSe
         }
 
         geckoEngineSession.notifyObservers {
-            onPromptRequest(PromptRequest.BeforeUnload(title, onAllow, onDeny))
+            onPromptRequest(WebPromptRequest.BeforeUnload(title, onAllow, onDeny))
         }
 
         return geckoResult
@@ -455,7 +455,7 @@ internal class GeckoPromptDelegate(private val geckoEngineSession: GeckoEngineSe
 
         geckoEngineSession.notifyObservers {
             onPromptRequest(
-                PromptRequest.Share(
+                WebPromptRequest.Share(
                     ShareData(
                         title = prompt.title,
                         text = prompt.text,
@@ -493,7 +493,7 @@ internal class GeckoPromptDelegate(private val geckoEngineSession: GeckoEngineSe
 
         geckoEngineSession.notifyObservers {
             onPromptRequest(
-                PromptRequest.Confirm(
+                WebPromptRequest.Confirm(
                     title,
                     message,
                     false,
@@ -531,7 +531,7 @@ internal class GeckoPromptDelegate(private val geckoEngineSession: GeckoEngineSe
 
         geckoEngineSession.notifyObservers {
             onPromptRequest(
-                PromptRequest.Repost(
+                WebPromptRequest.Repost(
                     onConfirm,
                     onCancel
                 )
@@ -581,15 +581,15 @@ internal class GeckoPromptDelegate(private val geckoEngineSession: GeckoEngineSe
         }
 
         val selectionType = when (format) {
-            "HH:mm" -> PromptRequest.TimeSelection.Type.TIME
-            "yyyy-MM" -> PromptRequest.TimeSelection.Type.MONTH
-            "yyyy-MM-dd'T'HH:mm" -> PromptRequest.TimeSelection.Type.DATE_AND_TIME
-            else -> PromptRequest.TimeSelection.Type.DATE
+            "HH:mm" -> WebPromptRequest.TimeSelection.Type.TIME
+            "yyyy-MM" -> WebPromptRequest.TimeSelection.Type.MONTH
+            "yyyy-MM-dd'T'HH:mm" -> WebPromptRequest.TimeSelection.Type.DATE_AND_TIME
+            else -> WebPromptRequest.TimeSelection.Type.DATE
         }
 
         geckoEngineSession.notifyObservers {
             onPromptRequest(
-                PromptRequest.TimeSelection(
+                WebPromptRequest.TimeSelection(
                     title,
                     initialDate,
                     minDate,

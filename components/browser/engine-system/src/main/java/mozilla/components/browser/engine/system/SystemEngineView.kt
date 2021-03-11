@@ -54,7 +54,7 @@ import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy
 import mozilla.components.concept.engine.EngineView
 import mozilla.components.concept.engine.HitResult
 import mozilla.components.concept.engine.content.blocking.Tracker
-import mozilla.components.concept.engine.prompt.PromptRequest
+import mozilla.components.concept.engine.prompt.WebPromptRequest
 import mozilla.components.concept.engine.request.RequestInterceptor.InterceptionResponse
 import mozilla.components.concept.engine.selection.SelectionActionDelegate
 import mozilla.components.concept.engine.window.WindowRequest
@@ -357,13 +357,13 @@ class SystemEngineView @JvmOverloads constructor(
 
             session.notifyObservers {
                 onPromptRequest(
-                    PromptRequest.Authentication(
+                    WebPromptRequest.Authentication(
                         "",
                         message,
                         userName,
                         password,
-                        PromptRequest.Authentication.Method.HOST,
-                        PromptRequest.Authentication.Level.NONE,
+                        WebPromptRequest.Authentication.Method.HOST,
+                        WebPromptRequest.Authentication.Level.NONE,
                         onConfirm = { user, pass -> handler.proceed(user, pass) },
                         onDismiss = { handler.cancel() }
                     )
@@ -441,7 +441,7 @@ class SystemEngineView @JvmOverloads constructor(
 
             session.notifyObservers {
                 onPromptRequest(
-                    PromptRequest.Alert(
+                    WebPromptRequest.Alert(
                         title,
                         message ?: "",
                         false,
@@ -474,7 +474,7 @@ class SystemEngineView @JvmOverloads constructor(
 
             session.notifyObservers {
                 onPromptRequest(
-                    PromptRequest.TextPrompt(
+                    WebPromptRequest.TextPrompt(
                         title,
                         message ?: "",
                         defaultValue ?: "",
@@ -505,7 +505,7 @@ class SystemEngineView @JvmOverloads constructor(
 
             session.notifyObservers {
                 onPromptRequest(
-                    PromptRequest.Confirm(
+                    WebPromptRequest.Confirm(
                         title,
                         message ?: "",
                         false,
@@ -537,9 +537,9 @@ class SystemEngineView @JvmOverloads constructor(
             val isMultipleFilesSelection = fileChooserParams?.mode == MODE_OPEN_MULTIPLE
 
             val captureMode = if (fileChooserParams?.isCaptureEnabled == true) {
-                PromptRequest.File.FacingMode.ANY
+                WebPromptRequest.File.FacingMode.ANY
             } else {
-                PromptRequest.File.FacingMode.NONE
+                WebPromptRequest.File.FacingMode.NONE
             }
 
             val onSelectMultiple: (Context, Array<Uri>) -> Unit = { _, uris ->
@@ -556,7 +556,7 @@ class SystemEngineView @JvmOverloads constructor(
 
             session?.notifyObservers {
                 onPromptRequest(
-                    PromptRequest.File(
+                    WebPromptRequest.File(
                         mimeTypes,
                         isMultipleFilesSelection,
                         captureMode,

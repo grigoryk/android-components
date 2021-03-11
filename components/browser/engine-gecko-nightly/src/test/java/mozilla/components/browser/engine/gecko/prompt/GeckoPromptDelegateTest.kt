@@ -9,9 +9,9 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.browser.engine.gecko.GeckoEngineSession
 import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.prompt.Choice
-import mozilla.components.concept.engine.prompt.PromptRequest
-import mozilla.components.concept.engine.prompt.PromptRequest.MultipleChoice
-import mozilla.components.concept.engine.prompt.PromptRequest.SingleChoice
+import mozilla.components.concept.engine.prompt.WebPromptRequest
+import mozilla.components.concept.engine.prompt.WebPromptRequest.MultipleChoice
+import mozilla.components.concept.engine.prompt.WebPromptRequest.SingleChoice
 import mozilla.components.concept.storage.Login
 import mozilla.components.support.ktx.kotlin.toDate
 import mozilla.components.support.test.any
@@ -54,8 +54,8 @@ typealias GECKO_AUTH_LEVEL = GeckoSession.PromptDelegate.AuthPrompt.AuthOptions.
 typealias GECKO_PROMPT_CHOICE_TYPE = GeckoSession.PromptDelegate.ChoicePrompt.Type
 typealias GECKO_AUTH_FLAGS = GeckoSession.PromptDelegate.AuthPrompt.AuthOptions.Flags
 typealias GECKO_PROMPT_FILE_TYPE = GeckoSession.PromptDelegate.FilePrompt.Type
-typealias AC_AUTH_METHOD = PromptRequest.Authentication.Method
-typealias AC_AUTH_LEVEL = PromptRequest.Authentication.Level
+typealias AC_AUTH_METHOD = WebPromptRequest.Authentication.Method
+typealias AC_AUTH_LEVEL = WebPromptRequest.Authentication.Level
 
 @RunWith(AndroidJUnit4::class)
 class GeckoPromptDelegateTest {
@@ -71,7 +71,7 @@ class GeckoPromptDelegateTest {
     @Test
     fun `onChoicePrompt called with CHOICE_TYPE_SINGLE must provide a SingleChoice PromptRequest`() {
         val mockSession = GeckoEngineSession(runtime)
-        var promptRequestSingleChoice: PromptRequest = MultipleChoice(arrayOf()) {}
+        var promptRequestSingleChoice: WebPromptRequest = MultipleChoice(arrayOf()) {}
         var confirmWasCalled = false
         val gecko = GeckoPromptDelegate(mockSession)
         val geckoChoice = object : GeckoChoice() {}
@@ -83,7 +83,7 @@ class GeckoPromptDelegateTest {
         )
 
         mockSession.register(object : EngineSession.Observer {
-            override fun onPromptRequest(promptRequest: PromptRequest) {
+            override fun onPromptRequest(promptRequest: WebPromptRequest) {
                 promptRequestSingleChoice = promptRequest
             }
         })
@@ -109,7 +109,7 @@ class GeckoPromptDelegateTest {
     @Test
     fun `onChoicePrompt called with CHOICE_TYPE_MULTIPLE must provide a MultipleChoice PromptRequest`() {
         val mockSession = GeckoEngineSession(runtime)
-        var promptRequestSingleChoice: PromptRequest = SingleChoice(arrayOf()) {}
+        var promptRequestSingleChoice: WebPromptRequest = SingleChoice(arrayOf()) {}
         var confirmWasCalled = false
         val gecko = GeckoPromptDelegate(mockSession)
         val mockGeckoChoice = object : GeckoChoice() {}
@@ -121,7 +121,7 @@ class GeckoPromptDelegateTest {
         )
 
         mockSession.register(object : EngineSession.Observer {
-            override fun onPromptRequest(promptRequest: PromptRequest) {
+            override fun onPromptRequest(promptRequest: WebPromptRequest) {
                 promptRequestSingleChoice = promptRequest
             }
         })
@@ -146,7 +146,7 @@ class GeckoPromptDelegateTest {
     @Test
     fun `onChoicePrompt called with CHOICE_TYPE_MENU must provide a MenuChoice PromptRequest`() {
         val mockSession = GeckoEngineSession(runtime)
-        var promptRequestSingleChoice: PromptRequest = PromptRequest.MenuChoice(arrayOf()) {}
+        var promptRequestSingleChoice: WebPromptRequest = WebPromptRequest.MenuChoice(arrayOf()) {}
         var confirmWasCalled = false
         val gecko = GeckoPromptDelegate(mockSession)
         val geckoChoice = object : GeckoChoice() {}
@@ -159,7 +159,7 @@ class GeckoPromptDelegateTest {
 
         mockSession.register(
             object : EngineSession.Observer {
-                override fun onPromptRequest(promptRequest: PromptRequest) {
+                override fun onPromptRequest(promptRequest: WebPromptRequest) {
                     promptRequestSingleChoice = promptRequest
                 }
             })
@@ -169,8 +169,8 @@ class GeckoPromptDelegateTest {
             confirmWasCalled = true
         }
 
-        assertTrue(promptRequestSingleChoice is PromptRequest.MenuChoice)
-        val request = promptRequestSingleChoice as PromptRequest.MenuChoice
+        assertTrue(promptRequestSingleChoice is WebPromptRequest.MenuChoice)
+        val request = promptRequestSingleChoice as WebPromptRequest.MenuChoice
 
         request.onConfirm(request.choices.first())
         assertTrue(confirmWasCalled)
@@ -196,13 +196,13 @@ class GeckoPromptDelegateTest {
     @Test
     fun `onAlertPrompt must provide an alert PromptRequest`() {
         val mockSession = GeckoEngineSession(runtime)
-        var alertRequest: PromptRequest? = null
+        var alertRequest: WebPromptRequest? = null
         var dismissWasCalled = false
 
         val promptDelegate = GeckoPromptDelegate(mockSession)
 
         mockSession.register(object : EngineSession.Observer {
-            override fun onPromptRequest(promptRequest: PromptRequest) {
+            override fun onPromptRequest(promptRequest: WebPromptRequest) {
                 alertRequest = promptRequest
             }
         })
@@ -211,13 +211,13 @@ class GeckoPromptDelegateTest {
         geckoResult.accept {
             dismissWasCalled = true
         }
-        assertTrue(alertRequest is PromptRequest.Alert)
+        assertTrue(alertRequest is WebPromptRequest.Alert)
 
-        (alertRequest as PromptRequest.Alert).onDismiss()
+        (alertRequest as WebPromptRequest.Alert).onDismiss()
         assertTrue(dismissWasCalled)
 
-        assertEquals((alertRequest as PromptRequest.Alert).title, "title")
-        assertEquals((alertRequest as PromptRequest.Alert).message, "message")
+        assertEquals((alertRequest as WebPromptRequest.Alert).title, "title")
+        assertEquals((alertRequest as WebPromptRequest.Alert).message, "message")
     }
 
     @Test
@@ -232,14 +232,14 @@ class GeckoPromptDelegateTest {
     @Test
     fun `onDateTimePrompt called with DATETIME_TYPE_DATE must provide a date PromptRequest`() {
         val mockSession = GeckoEngineSession(runtime)
-        var dateRequest: PromptRequest? = null
+        var dateRequest: WebPromptRequest? = null
         var confirmCalled = false
         var onClearPicker = false
         var geckoPrompt = GeckoDateTimePrompt("title", DATE, "", "", "")
 
         val promptDelegate = GeckoPromptDelegate(mockSession)
         mockSession.register(object : EngineSession.Observer {
-            override fun onPromptRequest(promptRequest: PromptRequest) {
+            override fun onPromptRequest(promptRequest: WebPromptRequest) {
                 dateRequest = promptRequest
             }
         })
@@ -249,13 +249,13 @@ class GeckoPromptDelegateTest {
             confirmCalled = true
         }
 
-        assertTrue(dateRequest is PromptRequest.TimeSelection)
-        (dateRequest as PromptRequest.TimeSelection).onConfirm(Date())
+        assertTrue(dateRequest is WebPromptRequest.TimeSelection)
+        (dateRequest as WebPromptRequest.TimeSelection).onConfirm(Date())
         assertTrue(confirmCalled)
-        assertEquals((dateRequest as PromptRequest.TimeSelection).title, "title")
+        assertEquals((dateRequest as WebPromptRequest.TimeSelection).title, "title")
 
         confirmCalled = false
-        (dateRequest as PromptRequest.TimeSelection).onConfirm(Date())
+        (dateRequest as WebPromptRequest.TimeSelection).onConfirm(Date())
 
         assertFalse(confirmCalled)
 
@@ -265,14 +265,14 @@ class GeckoPromptDelegateTest {
             onClearPicker = true
         }
 
-        (dateRequest as PromptRequest.TimeSelection).onClear()
+        (dateRequest as WebPromptRequest.TimeSelection).onClear()
         assertTrue(onClearPicker)
     }
 
     @Test
     fun `onDateTimePrompt DATETIME_TYPE_DATE with date parameters must format dates correctly`() {
         val mockSession = GeckoEngineSession(runtime)
-        var timeSelectionRequest: PromptRequest.TimeSelection? = null
+        var timeSelectionRequest: WebPromptRequest.TimeSelection? = null
         var geckoDate: String? = null
 
         val geckoPrompt =
@@ -285,8 +285,8 @@ class GeckoPromptDelegateTest {
             )
         val promptDelegate = GeckoPromptDelegate(mockSession)
         mockSession.register(object : EngineSession.Observer {
-            override fun onPromptRequest(promptRequest: PromptRequest) {
-                timeSelectionRequest = promptRequest as PromptRequest.TimeSelection
+            override fun onPromptRequest(promptRequest: WebPromptRequest) {
+                timeSelectionRequest = promptRequest as WebPromptRequest.TimeSelection
             }
         })
 
@@ -302,20 +302,20 @@ class GeckoPromptDelegateTest {
             assertEquals(maximumDate, "2019-11-30".toDate("yyyy-MM-dd"))
         }
         val selectedDate = "2019-11-28".toDate("yyyy-MM-dd")
-        (timeSelectionRequest as PromptRequest.TimeSelection).onConfirm(selectedDate)
+        (timeSelectionRequest as WebPromptRequest.TimeSelection).onConfirm(selectedDate)
         assertNotNull(geckoDate?.toDate("yyyy-MM-dd")?.equals(selectedDate))
-        assertEquals((timeSelectionRequest as PromptRequest.TimeSelection).title, "title")
+        assertEquals((timeSelectionRequest as WebPromptRequest.TimeSelection).title, "title")
     }
 
     @Test
     fun `onDateTimePrompt called with DATETIME_TYPE_MONTH must provide a date PromptRequest`() {
         val mockSession = GeckoEngineSession(runtime)
-        var dateRequest: PromptRequest? = null
+        var dateRequest: WebPromptRequest? = null
         var confirmCalled = false
 
         val promptDelegate = GeckoPromptDelegate(mockSession)
         mockSession.register(object : EngineSession.Observer {
-            override fun onPromptRequest(promptRequest: PromptRequest) {
+            override fun onPromptRequest(promptRequest: WebPromptRequest) {
                 dateRequest = promptRequest
             }
         })
@@ -325,22 +325,22 @@ class GeckoPromptDelegateTest {
         geckoResult!!.accept {
             confirmCalled = true
         }
-        assertTrue(dateRequest is PromptRequest.TimeSelection)
-        (dateRequest as PromptRequest.TimeSelection).onConfirm(Date())
+        assertTrue(dateRequest is WebPromptRequest.TimeSelection)
+        (dateRequest as WebPromptRequest.TimeSelection).onConfirm(Date())
         assertTrue(confirmCalled)
-        assertEquals((dateRequest as PromptRequest.TimeSelection).title, "title")
+        assertEquals((dateRequest as WebPromptRequest.TimeSelection).title, "title")
     }
 
     @Test
     fun `onDateTimePrompt DATETIME_TYPE_MONTH with date parameters must format dates correctly`() {
         val mockSession = GeckoEngineSession(runtime)
-        var timeSelectionRequest: PromptRequest.TimeSelection? = null
+        var timeSelectionRequest: WebPromptRequest.TimeSelection? = null
         var geckoDate: String? = null
 
         val promptDelegate = GeckoPromptDelegate(mockSession)
         mockSession.register(object : EngineSession.Observer {
-            override fun onPromptRequest(promptRequest: PromptRequest) {
-                timeSelectionRequest = promptRequest as PromptRequest.TimeSelection
+            override fun onPromptRequest(promptRequest: WebPromptRequest) {
+                timeSelectionRequest = promptRequest as WebPromptRequest.TimeSelection
             }
         })
         val geckoPrompt = GeckoDateTimePrompt(
@@ -362,19 +362,19 @@ class GeckoPromptDelegateTest {
             assertEquals(maximumDate, "2019-11".toDate("yyyy-MM"))
         }
         val selectedDate = "2019-11".toDate("yyyy-MM")
-        (timeSelectionRequest as PromptRequest.TimeSelection).onConfirm(selectedDate)
+        (timeSelectionRequest as WebPromptRequest.TimeSelection).onConfirm(selectedDate)
         assertNotNull(geckoDate?.toDate("yyyy-MM")?.equals(selectedDate))
-        assertEquals((timeSelectionRequest as PromptRequest.TimeSelection).title, "title")
+        assertEquals((timeSelectionRequest as WebPromptRequest.TimeSelection).title, "title")
     }
 
     @Test
     fun `onDateTimePrompt called with DATETIME_TYPE_WEEK must provide a date PromptRequest`() {
         val mockSession = GeckoEngineSession(runtime)
-        var dateRequest: PromptRequest? = null
+        var dateRequest: WebPromptRequest? = null
         var confirmCalled = false
         val promptDelegate = GeckoPromptDelegate(mockSession)
         mockSession.register(object : EngineSession.Observer {
-            override fun onPromptRequest(promptRequest: PromptRequest) {
+            override fun onPromptRequest(promptRequest: WebPromptRequest) {
                 dateRequest = promptRequest
             }
         })
@@ -385,21 +385,21 @@ class GeckoPromptDelegateTest {
             confirmCalled = true
         }
 
-        assertTrue(dateRequest is PromptRequest.TimeSelection)
-        (dateRequest as PromptRequest.TimeSelection).onConfirm(Date())
+        assertTrue(dateRequest is WebPromptRequest.TimeSelection)
+        (dateRequest as WebPromptRequest.TimeSelection).onConfirm(Date())
         assertTrue(confirmCalled)
-        assertEquals((dateRequest as PromptRequest.TimeSelection).title, "title")
+        assertEquals((dateRequest as WebPromptRequest.TimeSelection).title, "title")
     }
 
     @Test
     fun `onDateTimePrompt DATETIME_TYPE_WEEK with date parameters must format dates correctly`() {
         val mockSession = GeckoEngineSession(runtime)
-        var timeSelectionRequest: PromptRequest.TimeSelection? = null
+        var timeSelectionRequest: WebPromptRequest.TimeSelection? = null
         var geckoDate: String? = null
         val promptDelegate = GeckoPromptDelegate(mockSession)
         mockSession.register(object : EngineSession.Observer {
-            override fun onPromptRequest(promptRequest: PromptRequest) {
-                timeSelectionRequest = promptRequest as PromptRequest.TimeSelection
+            override fun onPromptRequest(promptRequest: WebPromptRequest) {
+                timeSelectionRequest = promptRequest as WebPromptRequest.TimeSelection
             }
         })
 
@@ -422,20 +422,20 @@ class GeckoPromptDelegateTest {
             assertEquals(maximumDate, "2018-W26".toDate("yyyy-'W'ww"))
         }
         val selectedDate = "2018-W26".toDate("yyyy-'W'ww")
-        (timeSelectionRequest as PromptRequest.TimeSelection).onConfirm(selectedDate)
+        (timeSelectionRequest as WebPromptRequest.TimeSelection).onConfirm(selectedDate)
         assertNotNull(geckoDate?.toDate("yyyy-'W'ww")?.equals(selectedDate))
-        assertEquals((timeSelectionRequest as PromptRequest.TimeSelection).title, "title")
+        assertEquals((timeSelectionRequest as WebPromptRequest.TimeSelection).title, "title")
     }
 
     @Test
     fun `onDateTimePrompt called with DATETIME_TYPE_TIME must provide a TimeSelection PromptRequest`() {
         val mockSession = GeckoEngineSession(runtime)
-        var dateRequest: PromptRequest? = null
+        var dateRequest: WebPromptRequest? = null
         var confirmCalled = false
 
         val promptDelegate = GeckoPromptDelegate(mockSession)
         mockSession.register(object : EngineSession.Observer {
-            override fun onPromptRequest(promptRequest: PromptRequest) {
+            override fun onPromptRequest(promptRequest: WebPromptRequest) {
                 dateRequest = promptRequest
             }
         })
@@ -446,22 +446,22 @@ class GeckoPromptDelegateTest {
             confirmCalled = true
         }
 
-        assertTrue(dateRequest is PromptRequest.TimeSelection)
-        (dateRequest as PromptRequest.TimeSelection).onConfirm(Date())
+        assertTrue(dateRequest is WebPromptRequest.TimeSelection)
+        (dateRequest as WebPromptRequest.TimeSelection).onConfirm(Date())
         assertTrue(confirmCalled)
-        assertEquals((dateRequest as PromptRequest.TimeSelection).title, "title")
+        assertEquals((dateRequest as WebPromptRequest.TimeSelection).title, "title")
     }
 
     @Test
     fun `onDateTimePrompt DATETIME_TYPE_TIME with time parameters must format time correctly`() {
         val mockSession = GeckoEngineSession(runtime)
-        var timeSelectionRequest: PromptRequest.TimeSelection? = null
+        var timeSelectionRequest: WebPromptRequest.TimeSelection? = null
         var geckoDate: String? = null
 
         val promptDelegate = GeckoPromptDelegate(mockSession)
         mockSession.register(object : EngineSession.Observer {
-            override fun onPromptRequest(promptRequest: PromptRequest) {
-                timeSelectionRequest = promptRequest as PromptRequest.TimeSelection
+            override fun onPromptRequest(promptRequest: WebPromptRequest) {
+                timeSelectionRequest = promptRequest as WebPromptRequest.TimeSelection
             }
         })
 
@@ -484,20 +484,20 @@ class GeckoPromptDelegateTest {
             assertEquals(maximumDate, "18:00".toDate("HH:mm"))
         }
         val selectedDate = "17:00".toDate("HH:mm")
-        (timeSelectionRequest as PromptRequest.TimeSelection).onConfirm(selectedDate)
+        (timeSelectionRequest as WebPromptRequest.TimeSelection).onConfirm(selectedDate)
         assertNotNull(geckoDate?.toDate("HH:mm")?.equals(selectedDate))
-        assertEquals((timeSelectionRequest as PromptRequest.TimeSelection).title, "title")
+        assertEquals((timeSelectionRequest as WebPromptRequest.TimeSelection).title, "title")
     }
 
     @Test
     fun `onDateTimePrompt called with DATETIME_TYPE_DATETIME_LOCAL must provide a TimeSelection PromptRequest`() {
         val mockSession = GeckoEngineSession(runtime)
-        var dateRequest: PromptRequest? = null
+        var dateRequest: WebPromptRequest? = null
         var confirmCalled = false
 
         val promptDelegate = GeckoPromptDelegate(mockSession)
         mockSession.register(object : EngineSession.Observer {
-            override fun onPromptRequest(promptRequest: PromptRequest) {
+            override fun onPromptRequest(promptRequest: WebPromptRequest) {
                 dateRequest = promptRequest
             }
         })
@@ -507,21 +507,21 @@ class GeckoPromptDelegateTest {
             confirmCalled = true
         }
 
-        assertTrue(dateRequest is PromptRequest.TimeSelection)
-        (dateRequest as PromptRequest.TimeSelection).onConfirm(Date())
+        assertTrue(dateRequest is WebPromptRequest.TimeSelection)
+        (dateRequest as WebPromptRequest.TimeSelection).onConfirm(Date())
         assertTrue(confirmCalled)
-        assertEquals((dateRequest as PromptRequest.TimeSelection).title, "title")
+        assertEquals((dateRequest as WebPromptRequest.TimeSelection).title, "title")
     }
 
     @Test
     fun `onDateTimePrompt DATETIME_TYPE_DATETIME_LOCAL with date parameters must format time correctly`() {
         val mockSession = GeckoEngineSession(runtime)
-        var timeSelectionRequest: PromptRequest.TimeSelection? = null
+        var timeSelectionRequest: WebPromptRequest.TimeSelection? = null
         var geckoDate: String? = null
         val promptDelegate = GeckoPromptDelegate(mockSession)
         mockSession.register(object : EngineSession.Observer {
-            override fun onPromptRequest(promptRequest: PromptRequest) {
-                timeSelectionRequest = promptRequest as PromptRequest.TimeSelection
+            override fun onPromptRequest(promptRequest: WebPromptRequest) {
+                timeSelectionRequest = promptRequest as WebPromptRequest.TimeSelection
             }
         })
         val geckoPrompt = GeckoDateTimePrompt(
@@ -543,9 +543,9 @@ class GeckoPromptDelegateTest {
             assertEquals(maximumDate, "2018-06-14T00:00".toDate("yyyy-MM-dd'T'HH:mm"))
         }
         val selectedDate = "2018-06-12T19:30".toDate("yyyy-MM-dd'T'HH:mm")
-        (timeSelectionRequest as PromptRequest.TimeSelection).onConfirm(selectedDate)
+        (timeSelectionRequest as WebPromptRequest.TimeSelection).onConfirm(selectedDate)
         assertNotNull(geckoDate?.toDate("yyyy-MM-dd'T'HH:mm")?.equals(selectedDate))
-        assertEquals((timeSelectionRequest as PromptRequest.TimeSelection).title, "title")
+        assertEquals((timeSelectionRequest as WebPromptRequest.TimeSelection).title, "title")
     }
 
     @Test(expected = InvalidParameterException::class)
@@ -589,7 +589,7 @@ class GeckoPromptDelegateTest {
         doReturn(contentResolver).`when`(context).contentResolver
         doReturn(mock<FileInputStream>()).`when`(contentResolver).openInputStream(any())
 
-        var filePickerRequest: PromptRequest.File = mock()
+        var filePickerRequest: WebPromptRequest.File = mock()
 
         val promptDelegate = spy(GeckoPromptDelegate(mockSession))
 
@@ -597,8 +597,8 @@ class GeckoPromptDelegateTest {
         doReturn(0L).`when`(promptDelegate).copyFile(any(), any())
 
         mockSession.register(object : EngineSession.Observer {
-            override fun onPromptRequest(promptRequest: PromptRequest) {
-                filePickerRequest = promptRequest as PromptRequest.File
+            override fun onPromptRequest(promptRequest: WebPromptRequest) {
+                filePickerRequest = promptRequest as WebPromptRequest.File
             }
         })
         var geckoPrompt = GeckoFilePrompt(type = GECKO_PROMPT_FILE_TYPE.SINGLE, capture = NONE)
@@ -641,7 +641,7 @@ class GeckoPromptDelegateTest {
 
         assertTrue(filePickerRequest.mimeTypes.isEmpty())
         assertFalse(filePickerRequest.isMultipleFilesSelection)
-        assertEquals(PromptRequest.File.FacingMode.NONE, filePickerRequest.captureMode)
+        assertEquals(WebPromptRequest.File.FacingMode.NONE, filePickerRequest.captureMode)
 
         promptDelegate.onFilePrompt(
             mock(),
@@ -650,7 +650,7 @@ class GeckoPromptDelegateTest {
 
         assertTrue(filePickerRequest.isMultipleFilesSelection)
         assertEquals(
-            PromptRequest.File.FacingMode.FRONT_CAMERA,
+            WebPromptRequest.File.FacingMode.FRONT_CAMERA,
             filePickerRequest.captureMode
         )
     }
@@ -661,13 +661,13 @@ class GeckoPromptDelegateTest {
         var onLoginSaved = false
         var onDismissWasCalled = false
 
-        var loginSaveRequest: PromptRequest.SaveLoginPrompt = mock()
+        var loginSaveRequest: WebPromptRequest.SaveLoginPrompt = mock()
 
         val promptDelegate = spy(GeckoPromptDelegate(mockSession))
 
         mockSession.register(object : EngineSession.Observer {
-            override fun onPromptRequest(promptRequest: PromptRequest) {
-                loginSaveRequest = promptRequest as PromptRequest.SaveLoginPrompt
+            override fun onPromptRequest(promptRequest: WebPromptRequest) {
+                loginSaveRequest = promptRequest as WebPromptRequest.SaveLoginPrompt
             }
         })
 
@@ -706,13 +706,13 @@ class GeckoPromptDelegateTest {
         var onLoginSelected = false
         var onDismissWasCalled = false
 
-        var loginSelectRequest: PromptRequest.SelectLoginPrompt = mock()
+        var loginSelectRequest: WebPromptRequest.SelectLoginPrompt = mock()
 
         val promptDelegate = spy(GeckoPromptDelegate(mockSession))
 
         mockSession.register(object : EngineSession.Observer {
-            override fun onPromptRequest(promptRequest: PromptRequest) {
-                loginSelectRequest = promptRequest as PromptRequest.SelectLoginPrompt
+            override fun onPromptRequest(promptRequest: WebPromptRequest) {
+                loginSelectRequest = promptRequest as WebPromptRequest.SelectLoginPrompt
             }
         })
 
@@ -788,15 +788,15 @@ class GeckoPromptDelegateTest {
     @Test
     fun `Calling onAuthPrompt must provide an Authentication PromptRequest`() {
         val mockSession = GeckoEngineSession(runtime)
-        var authRequest: PromptRequest.Authentication = mock()
+        var authRequest: WebPromptRequest.Authentication = mock()
         var onConfirmWasCalled = false
         var onConfirmOnlyPasswordWasCalled = false
         var onDismissWasCalled = false
 
         val promptDelegate = GeckoPromptDelegate(mockSession)
         mockSession.register(object : EngineSession.Observer {
-            override fun onPromptRequest(promptRequest: PromptRequest) {
-                authRequest = promptRequest as PromptRequest.Authentication
+            override fun onPromptRequest(promptRequest: WebPromptRequest) {
+                authRequest = promptRequest as WebPromptRequest.Authentication
             }
         })
 
@@ -869,14 +869,14 @@ class GeckoPromptDelegateTest {
     @Test
     fun `Calling onColorPrompt must provide a Color PromptRequest`() {
         val mockSession = GeckoEngineSession(runtime)
-        var colorRequest: PromptRequest.Color = mock()
+        var colorRequest: WebPromptRequest.Color = mock()
         var onConfirmWasCalled = false
         var onDismissWasCalled = false
 
         val promptDelegate = GeckoPromptDelegate(mockSession)
         mockSession.register(object : EngineSession.Observer {
-            override fun onPromptRequest(promptRequest: PromptRequest) {
-                colorRequest = promptRequest as PromptRequest.Color
+            override fun onPromptRequest(promptRequest: WebPromptRequest) {
+                colorRequest = promptRequest as WebPromptRequest.Color
             }
         })
 
@@ -915,15 +915,15 @@ class GeckoPromptDelegateTest {
     @Test
     fun `onTextPrompt must provide an TextPrompt PromptRequest`() {
         val mockSession = GeckoEngineSession(runtime)
-        var request: PromptRequest.TextPrompt = mock()
+        var request: WebPromptRequest.TextPrompt = mock()
         var dismissWasCalled = false
         var confirmWasCalled = false
 
         val promptDelegate = GeckoPromptDelegate(mockSession)
 
         mockSession.register(object : EngineSession.Observer {
-            override fun onPromptRequest(promptRequest: PromptRequest) {
-                request = promptRequest as PromptRequest.TextPrompt
+            override fun onPromptRequest(promptRequest: WebPromptRequest) {
+                request = promptRequest as WebPromptRequest.TextPrompt
             }
         })
 
@@ -958,15 +958,15 @@ class GeckoPromptDelegateTest {
     @Test
     fun `onPopupRequest must provide a Popup PromptRequest`() {
         val mockSession = GeckoEngineSession(runtime)
-        var request: PromptRequest.Popup? = null
+        var request: WebPromptRequest.Popup? = null
         var onAllowWasCalled = false
         var onDenyWasCalled = false
 
         val promptDelegate = GeckoPromptDelegate(mockSession)
 
         mockSession.register(object : EngineSession.Observer {
-            override fun onPromptRequest(promptRequest: PromptRequest) {
-                request = promptRequest as PromptRequest.Popup
+            override fun onPromptRequest(promptRequest: WebPromptRequest) {
+                request = promptRequest as WebPromptRequest.Popup
             }
         })
 
@@ -1006,15 +1006,15 @@ class GeckoPromptDelegateTest {
     @Test
     fun `onBeforeUnloadPrompt must provide a BeforeUnload PromptRequest`() {
         val mockSession = GeckoEngineSession(runtime)
-        var request: PromptRequest.BeforeUnload? = null
+        var request: WebPromptRequest.BeforeUnload? = null
         var onAllowWasCalled = false
         var onDenyWasCalled = false
 
         val promptDelegate = GeckoPromptDelegate(mockSession)
 
         mockSession.register(object : EngineSession.Observer {
-            override fun onPromptRequest(promptRequest: PromptRequest) {
-                request = promptRequest as PromptRequest.BeforeUnload
+            override fun onPromptRequest(promptRequest: WebPromptRequest) {
+                request = promptRequest as WebPromptRequest.BeforeUnload
             }
         })
 
@@ -1056,11 +1056,11 @@ class GeckoPromptDelegateTest {
     fun `onBeforeUnloadPrompt will inform listeners when if navigation is cancelled`() {
         val mockSession = GeckoEngineSession(runtime)
         var onBeforeUnloadPromptCancelledCalled = false
-        var request: PromptRequest.BeforeUnload = mock()
+        var request: WebPromptRequest.BeforeUnload = mock()
 
         mockSession.register(object : EngineSession.Observer {
-            override fun onPromptRequest(promptRequest: PromptRequest) {
-                request = promptRequest as PromptRequest.BeforeUnload
+            override fun onPromptRequest(promptRequest: WebPromptRequest) {
+                request = promptRequest as WebPromptRequest.BeforeUnload
             }
 
             override fun onBeforeUnloadPromptDenied() {
@@ -1079,7 +1079,7 @@ class GeckoPromptDelegateTest {
     @Test
     fun `onSharePrompt must provide a Share PromptRequest`() {
         val mockSession = GeckoEngineSession(runtime)
-        var request: PromptRequest.Share? = null
+        var request: WebPromptRequest.Share? = null
         var onSuccessWasCalled = false
         var onFailureWasCalled = false
         var onDismissWasCalled = false
@@ -1087,8 +1087,8 @@ class GeckoPromptDelegateTest {
         val promptDelegate = GeckoPromptDelegate(mockSession)
 
         mockSession.register(object : EngineSession.Observer {
-            override fun onPromptRequest(promptRequest: PromptRequest) {
-                request = promptRequest as PromptRequest.Share
+            override fun onPromptRequest(promptRequest: WebPromptRequest) {
+                request = promptRequest as WebPromptRequest.Share
             }
         })
 
@@ -1139,7 +1139,7 @@ class GeckoPromptDelegateTest {
     @Test
     fun `onButtonPrompt must provide a Confirm PromptRequest`() {
         val mockSession = GeckoEngineSession(runtime)
-        var request: PromptRequest.Confirm = mock()
+        var request: WebPromptRequest.Confirm = mock()
         var onPositiveButtonWasCalled = false
         var onNegativeButtonWasCalled = false
         var onNeutralButtonWasCalled = false
@@ -1148,8 +1148,8 @@ class GeckoPromptDelegateTest {
         val promptDelegate = GeckoPromptDelegate(mockSession)
 
         mockSession.register(object : EngineSession.Observer {
-            override fun onPromptRequest(promptRequest: PromptRequest) {
-                request = promptRequest as PromptRequest.Confirm
+            override fun onPromptRequest(promptRequest: WebPromptRequest) {
+                request = promptRequest as WebPromptRequest.Confirm
             }
         })
 
@@ -1206,13 +1206,13 @@ class GeckoPromptDelegateTest {
     @Test
     fun `onRepostConfirmPrompt must provide a Repost PromptRequest`() {
         val mockSession = GeckoEngineSession(runtime)
-        var request: PromptRequest.Repost = mock()
+        var request: WebPromptRequest.Repost = mock()
         var onPositiveButtonWasCalled = false
         var onNegativeButtonWasCalled = false
 
         mockSession.register(object : EngineSession.Observer {
-            override fun onPromptRequest(promptRequest: PromptRequest) {
-                request = promptRequest as PromptRequest.Repost
+            override fun onPromptRequest(promptRequest: WebPromptRequest) {
+                request = promptRequest as WebPromptRequest.Repost
             }
         })
 
@@ -1246,11 +1246,11 @@ class GeckoPromptDelegateTest {
     @Test
     fun `onRepostConfirmPrompt will not be able to complete multiple times`() {
         val mockSession = GeckoEngineSession(runtime)
-        var request: PromptRequest.Repost = mock()
+        var request: WebPromptRequest.Repost = mock()
 
         mockSession.register(object : EngineSession.Observer {
-            override fun onPromptRequest(promptRequest: PromptRequest) {
-                request = promptRequest as PromptRequest.Repost
+            override fun onPromptRequest(promptRequest: WebPromptRequest) {
+                request = promptRequest as WebPromptRequest.Repost
             }
         })
 
@@ -1285,11 +1285,11 @@ class GeckoPromptDelegateTest {
     fun `onRepostConfirmPrompt will inform listeners when it is being dismissed`() {
         val mockSession = GeckoEngineSession(runtime)
         var onRepostPromptCancelledCalled = false
-        var request: PromptRequest.Repost = mock()
+        var request: WebPromptRequest.Repost = mock()
 
         mockSession.register(object : EngineSession.Observer {
-            override fun onPromptRequest(promptRequest: PromptRequest) {
-                request = promptRequest as PromptRequest.Repost
+            override fun onPromptRequest(promptRequest: WebPromptRequest) {
+                request = promptRequest as WebPromptRequest.Repost
             }
 
             override fun onRepostPromptCancelled() {

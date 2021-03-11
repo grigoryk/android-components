@@ -10,7 +10,7 @@ import mozilla.components.browser.state.state.ContentState
 import mozilla.components.browser.state.state.CustomTabSessionState
 import mozilla.components.browser.state.state.TabSessionState
 import mozilla.components.browser.state.store.BrowserStore
-import mozilla.components.concept.engine.prompt.PromptRequest
+import mozilla.components.concept.engine.prompt.WebPromptRequest
 import mozilla.components.concept.storage.Login
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.whenever
@@ -30,7 +30,7 @@ class LoginPickerTest {
 
     var onDismissWasCalled = false
     var confirmedLogin: Login? = null
-    private val request = PromptRequest.SelectLoginPrompt(
+    private val request = WebPromptRequest.SelectLoginPrompt(
         listOf(login, login2),
         onConfirm = { confirmedLogin = it },
         onDismiss = { onDismissWasCalled = true }
@@ -102,8 +102,8 @@ class LoginPickerTest {
         verify(loginSelectBar).hidePicker()
     }
 
-    private fun prepareSelectedSession(request: PromptRequest? = null): TabSessionState {
-        val promptRequest: PromptRequest = request ?: mock()
+    private fun prepareSelectedSession(request: WebPromptRequest? = null): TabSessionState {
+        val promptRequest: WebPromptRequest = request ?: mock()
         val content: ContentState = mock()
         whenever(content.promptRequest).thenReturn(promptRequest)
 

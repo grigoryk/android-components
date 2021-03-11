@@ -5,14 +5,14 @@
 package mozilla.components.feature.prompts.login
 
 import mozilla.components.browser.state.store.BrowserStore
-import mozilla.components.concept.engine.prompt.PromptRequest
+import mozilla.components.concept.engine.prompt.WebPromptRequest
 import mozilla.components.concept.storage.Login
 import mozilla.components.feature.prompts.consumePromptFrom
 import mozilla.components.support.base.log.logger.Logger
 
 /**
  * The [LoginPicker] displays a list of possible logins in a [LoginPickerView] for a site after
- * receiving a [PromptRequest.SelectLoginPrompt] when a user clicks into a login field and we have
+ * receiving a [WebPromptRequest.SelectLoginPrompt] when a user clicks into a login field and we have
  * matching logins. It allows the user to select which one of these logins they would like to fill,
  * or select an option to manage their logins.
  *
@@ -26,20 +26,20 @@ internal class LoginPicker(
     private val store: BrowserStore,
     private val loginSelectBar: LoginPickerView,
     private val manageLoginsCallback: () -> Unit = {},
-    private var sessionId: String? = null
+    private val sessionId: String? = null
 ) : LoginPickerView.Listener {
 
     init {
         loginSelectBar.listener = this
     }
 
-    internal fun handleSelectLoginRequest(request: PromptRequest.SelectLoginPrompt) {
+    internal fun handleSelectLoginRequest(request: WebPromptRequest.SelectLoginPrompt) {
         loginSelectBar.showPicker(request.logins)
     }
 
     override fun onLoginSelected(login: Login) {
         store.consumePromptFrom(sessionId) {
-            if (it is PromptRequest.SelectLoginPrompt) it.onConfirm(login)
+            if (it is WebPromptRequest.SelectLoginPrompt) it.onConfirm(login)
         }
         loginSelectBar.hidePicker()
     }
@@ -50,10 +50,10 @@ internal class LoginPicker(
     }
 
     @Suppress("TooGenericExceptionCaught")
-    fun dismissCurrentLoginSelect(promptRequest: PromptRequest.SelectLoginPrompt? = null) {
+    fun dismissCurrentLoginSelect(promptRequest: WebPromptRequest.SelectLoginPrompt? = null) {
         try {
             promptRequest?.let { it.onDismiss() } ?: store.consumePromptFrom(sessionId) {
-                if (it is PromptRequest.SelectLoginPrompt) it.onDismiss()
+                if (it is WebPromptRequest.SelectLoginPrompt) it.onDismiss()
             }
         } catch (e: RuntimeException) {
             Logger.error("Can't dismiss this login select prompt", e)

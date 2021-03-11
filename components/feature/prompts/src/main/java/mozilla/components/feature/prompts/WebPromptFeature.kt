@@ -22,24 +22,22 @@ import mozilla.components.browser.state.selector.selectedTab
 import mozilla.components.browser.state.state.SessionState
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.prompt.Choice
-import mozilla.components.concept.engine.prompt.PromptRequest
-import mozilla.components.concept.engine.prompt.PromptRequest.Alert
-import mozilla.components.concept.engine.prompt.PromptRequest.Authentication
-import mozilla.components.concept.engine.prompt.PromptRequest.BeforeUnload
-import mozilla.components.concept.engine.prompt.PromptRequest.Color
-import mozilla.components.concept.engine.prompt.PromptRequest.Confirm
-import mozilla.components.concept.engine.prompt.PromptRequest.Dismissible
-import mozilla.components.concept.engine.prompt.PromptRequest.File
-import mozilla.components.concept.engine.prompt.PromptRequest.MenuChoice
-import mozilla.components.concept.engine.prompt.PromptRequest.MultipleChoice
-import mozilla.components.concept.engine.prompt.PromptRequest.Popup
-import mozilla.components.concept.engine.prompt.PromptRequest.Repost
-import mozilla.components.concept.engine.prompt.PromptRequest.SaveLoginPrompt
-import mozilla.components.concept.engine.prompt.PromptRequest.SelectLoginPrompt
-import mozilla.components.concept.engine.prompt.PromptRequest.Share
-import mozilla.components.concept.engine.prompt.PromptRequest.SingleChoice
-import mozilla.components.concept.engine.prompt.PromptRequest.TextPrompt
-import mozilla.components.concept.engine.prompt.PromptRequest.TimeSelection
+import mozilla.components.concept.engine.prompt.WebPromptRequest
+import mozilla.components.concept.engine.prompt.WebPromptRequest.Alert
+import mozilla.components.concept.engine.prompt.WebPromptRequest.Authentication
+import mozilla.components.concept.engine.prompt.WebPromptRequest.BeforeUnload
+import mozilla.components.concept.engine.prompt.WebPromptRequest.Color
+import mozilla.components.concept.engine.prompt.WebPromptRequest.Confirm
+import mozilla.components.concept.engine.prompt.DismissiblePrompt
+import mozilla.components.concept.engine.prompt.WebPromptRequest.File
+import mozilla.components.concept.engine.prompt.WebPromptRequest.MenuChoice
+import mozilla.components.concept.engine.prompt.WebPromptRequest.MultipleChoice
+import mozilla.components.concept.engine.prompt.WebPromptRequest.Popup
+import mozilla.components.concept.engine.prompt.WebPromptRequest.Repost
+import mozilla.components.concept.engine.prompt.WebPromptRequest.Share
+import mozilla.components.concept.engine.prompt.WebPromptRequest.SingleChoice
+import mozilla.components.concept.engine.prompt.WebPromptRequest.TextPrompt
+import mozilla.components.concept.engine.prompt.WebPromptRequest.TimeSelection
 import mozilla.components.concept.storage.Login
 import mozilla.components.concept.storage.LoginValidationDelegate
 import mozilla.components.feature.prompts.dialog.AlertDialogFragment
@@ -50,6 +48,7 @@ import mozilla.components.feature.prompts.dialog.ChoiceDialogFragment.Companion.
 import mozilla.components.feature.prompts.dialog.ChoiceDialogFragment.Companion.SINGLE_CHOICE_DIALOG_TYPE
 import mozilla.components.feature.prompts.dialog.ColorPickerDialogFragment
 import mozilla.components.feature.prompts.dialog.ConfirmDialogFragment
+import mozilla.components.feature.prompts.dialog.LoginPrompter
 import mozilla.components.feature.prompts.dialog.MultiButtonDialogFragment
 import mozilla.components.feature.prompts.dialog.PromptAbuserDetector
 import mozilla.components.feature.prompts.dialog.PromptDialogFragment
@@ -69,7 +68,6 @@ import mozilla.components.support.base.feature.LifecycleAwareFeature
 import mozilla.components.support.base.feature.OnNeedToRequestPermissions
 import mozilla.components.support.base.feature.PermissionsFeature
 import mozilla.components.support.base.feature.UserInteractionHandler
-import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.ktx.kotlinx.coroutines.flow.ifAnyChanged
 import java.lang.ref.WeakReference
 import java.security.InvalidParameterException
@@ -77,6 +75,7 @@ import java.util.Date
 
 @VisibleForTesting(otherwise = PRIVATE)
 internal const val FRAGMENT_TAG = "mozac_feature_prompt_dialog"
+
 
 /**
  * Feature for displaying native dialogs for html elements like: input type
@@ -91,7 +90,7 @@ internal const val FRAGMENT_TAG = "mozac_feature_prompt_dialog"
  * This feature will subscribe to the currently selected session and display
  * a suitable native dialog based on [Session.Observer.onPromptRequested] events.
  * Once the dialog is closed or the user selects an item from the dialog
- * the related [PromptRequest] will be consumed.
+ * the related [WebPromptRequest] will be consumed.
  *
  * @property container The [Activity] or [Fragment] which hosts this feature.
  * @property store The [BrowserStore] this feature should subscribe to.
@@ -101,41 +100,27 @@ internal const val FRAGMENT_TAG = "mozac_feature_prompt_dialog"
  * @property fragmentManager The [FragmentManager] to be used when displaying
  * a dialog (fragment).
  * @property shareDelegate Delegate used to display share sheet.
- * @property loginStorageDelegate Delegate used to access login storage. If null,
- * 'save login'prompts will not be shown.
- * @property isSaveLoginEnabled A callback invoked when a login prompt is triggered. If false,
- * 'save login'prompts will not be shown.
- * @property loginExceptionStorage An implementation of [LoginExceptions] that saves and checks origins
- * the user does not want to see a save login dialog for.
- * @property loginPickerView The [LoginPickerView] used for [LoginPicker] to display select login options.
- * @property onManageLogins A callback invoked when a user selects "manage logins" from the
- * select login prompt.
  * @property onNeedToRequestPermissions A callback invoked when permissions
  * need to be requested before a prompt (e.g. a file picker) can be displayed.
  * Once the request is completed, [onPermissionsResult] needs to be invoked.
  */
-@Suppress("LargeClass", "LongParameterList")
-class PromptFeature private constructor(
+@Suppress("TooManyFunctions", "LargeClass", "LongParameterList")
+class WebPromptFeature private constructor(
     private val container: PromptContainer,
     private val store: BrowserStore,
     private var customTabId: String?,
     private val fragmentManager: FragmentManager,
+    private val loginPromptHandler: AppPromptFeature?,
     private val shareDelegate: ShareDelegate,
-    override val loginValidationDelegate: LoginValidationDelegate? = null,
-    private val isSaveLoginEnabled: () -> Boolean = { false },
-    override val loginExceptionStorage: LoginExceptions? = null,
-    private val loginPickerView: LoginPickerView? = null,
-    private val onManageLogins: () -> Unit = {},
     onNeedToRequestPermissions: OnNeedToRequestPermissions
 ) : LifecycleAwareFeature, PermissionsFeature, Prompter, ActivityResultHandler, UserInteractionHandler {
     // These three scopes have identical lifetimes. We do not yet have a way of combining scopes
     private var handlePromptScope: CoroutineScope? = null
     private var dismissPromptScope: CoroutineScope? = null
     @VisibleForTesting
-    var activePromptRequest: PromptRequest? = null
+    var activePromptRequest: WebPromptRequest? = null
 
     internal val promptAbuserDetector = PromptAbuserDetector()
-    private val logger = Logger("PromptFeature")
 
     @VisibleForTesting(otherwise = PRIVATE)
     internal var activePrompt: WeakReference<PromptDialogFragment>? = null
@@ -146,11 +131,7 @@ class PromptFeature private constructor(
         customTabId: String? = null,
         fragmentManager: FragmentManager,
         shareDelegate: ShareDelegate = DefaultShareDelegate(),
-        loginValidationDelegate: LoginValidationDelegate? = null,
-        isSaveLoginEnabled: () -> Boolean = { false },
-        loginExceptionStorage: LoginExceptions? = null,
-        loginPickerView: LoginPickerView? = null,
-        onManageLogins: () -> Unit = {},
+        loginPromptHandler: AppPromptFeature? = null,
         onNeedToRequestPermissions: OnNeedToRequestPermissions
     ) : this(
         container = PromptContainer.Activity(activity),
@@ -158,12 +139,8 @@ class PromptFeature private constructor(
         customTabId = customTabId,
         fragmentManager = fragmentManager,
         shareDelegate = shareDelegate,
-        loginValidationDelegate = loginValidationDelegate,
-        isSaveLoginEnabled = isSaveLoginEnabled,
-        loginExceptionStorage = loginExceptionStorage,
-        onNeedToRequestPermissions = onNeedToRequestPermissions,
-        loginPickerView = loginPickerView,
-        onManageLogins = onManageLogins
+        loginPromptHandler = loginPromptHandler,
+        onNeedToRequestPermissions = onNeedToRequestPermissions
     )
 
     constructor(
@@ -172,11 +149,7 @@ class PromptFeature private constructor(
         customTabId: String? = null,
         fragmentManager: FragmentManager,
         shareDelegate: ShareDelegate = DefaultShareDelegate(),
-        loginValidationDelegate: LoginValidationDelegate? = null,
-        isSaveLoginEnabled: () -> Boolean = { false },
-        loginExceptionStorage: LoginExceptions? = null,
-        loginPickerView: LoginPickerView? = null,
-        onManageLogins: () -> Unit = {},
+        loginPromptHandler: AppPromptFeature? = null,
         onNeedToRequestPermissions: OnNeedToRequestPermissions
     ) : this(
         container = PromptContainer.Fragment(fragment),
@@ -184,46 +157,11 @@ class PromptFeature private constructor(
         customTabId = customTabId,
         fragmentManager = fragmentManager,
         shareDelegate = shareDelegate,
-        loginValidationDelegate = loginValidationDelegate,
-        isSaveLoginEnabled = isSaveLoginEnabled,
-        loginExceptionStorage = loginExceptionStorage,
-        onNeedToRequestPermissions = onNeedToRequestPermissions,
-        loginPickerView = loginPickerView,
-        onManageLogins = onManageLogins
-    )
-
-    @Deprecated("Pass only activity or fragment instead")
-    constructor(
-        activity: Activity? = null,
-        fragment: Fragment? = null,
-        store: BrowserStore,
-        customTabId: String? = null,
-        fragmentManager: FragmentManager,
-        loginPickerView: LoginPickerView? = null,
-        onManageLogins: () -> Unit = {},
-        onNeedToRequestPermissions: OnNeedToRequestPermissions
-    ) : this(
-        container = activity?.let { PromptContainer.Activity(it) }
-            ?: fragment?.let { PromptContainer.Fragment(it) }
-            ?: throw IllegalStateException(
-                "activity and fragment references " +
-                        "must not be both null, at least one must be initialized."
-            ),
-        store = store,
-        customTabId = customTabId,
-        fragmentManager = fragmentManager,
-        shareDelegate = DefaultShareDelegate(),
-        loginValidationDelegate = null,
-        onNeedToRequestPermissions = onNeedToRequestPermissions,
-        loginPickerView = loginPickerView,
-        onManageLogins = onManageLogins
+        loginPromptHandler = loginPromptHandler,
+        onNeedToRequestPermissions = onNeedToRequestPermissions
     )
 
     private val filePicker = FilePicker(container, store, customTabId, onNeedToRequestPermissions)
-
-    @VisibleForTesting(otherwise = PRIVATE)
-    internal var loginPicker =
-        loginPickerView?.let { LoginPicker(store, it, onManageLogins, customTabId) }
 
     override val onNeedToRequestPermissions
         get() = filePicker.onNeedToRequestPermissions
@@ -244,14 +182,16 @@ class PromptFeature private constructor(
                 .collect { state ->
                     state?.content?.let {
                         if (it.promptRequest != activePromptRequest) {
-                            if (activePromptRequest is SelectLoginPrompt) {
-                                loginPicker?.dismissCurrentLoginSelect(activePromptRequest as SelectLoginPrompt)
+                            (activePromptRequest as SelectLoginPrompt).let { prompt ->
+                                loginPromptHandler?.dismissSelectLoginPrompt(prompt)
                             }
                             onPromptRequested(state)
                         } else if (!it.loading) {
                             promptAbuserDetector.resetJSAlertAbuseState()
                         } else if (it.loading) {
-                            dismissLoginSelectPrompt()
+                            (it.promptRequest as SelectLoginPrompt).let { prompt ->
+                                loginPromptHandler?.dismissSelectLoginPrompt(prompt)
+                            }
                         }
                         activePromptRequest = it.promptRequest
                     }
@@ -266,7 +206,9 @@ class PromptFeature private constructor(
                     state.findTabOrCustomTabOrSelectedTab(customTabId)?.content?.url
                 )
             }.collect {
-                dismissLoginSelectPrompt()
+                (activePromptRequest as SelectLoginPrompt).let { prompt ->
+                    loginPromptHandler?.dismissSelectLoginPrompt(prompt)
+                }
 
                 val prompt = activePrompt?.get()
                 if (prompt?.shouldDismissOnLoad() == true) {
@@ -290,11 +232,16 @@ class PromptFeature private constructor(
         dismissPromptScope?.cancel()
 
         // Dismisses the logins prompt so that it can appear on another tab
-        dismissLoginSelectPrompt()
+        (activePromptRequest as SelectLoginPrompt).let { prompt ->
+            loginPromptHandler?.dismissSelectLoginPrompt(prompt)
+        }
     }
 
     override fun onBackPressed(): Boolean {
-        return dismissLoginSelectPrompt()
+        // TODO handle other types of dialogs
+        return (activePromptRequest as SelectLoginPrompt).let { prompt ->
+            loginPromptHandler?.dismissSelectLoginPrompt(prompt)
+        } ?: false
     }
 
     /**
@@ -334,9 +281,7 @@ class PromptFeature private constructor(
                 is Share -> handleShareRequest(promptRequest, session)
                 is SelectLoginPrompt -> {
                     if (promptRequest.logins.isNotEmpty()) {
-                        loginPicker?.handleSelectLoginRequest(
-                            promptRequest
-                        )
+                        loginPromptHandler?.handleSelectLoginRequest(promptRequest)
                     }
                 }
                 else -> handleDialogsRequest(promptRequest, session)
@@ -345,7 +290,7 @@ class PromptFeature private constructor(
     }
 
     /**
-     * Invoked when a dialog is dismissed. This consumes the [PromptFeature]
+     * Invoked when a dialog is dismissed. This consumes the [WebPromptFeature]
      * value from the session indicated by [sessionId].
      *
      * @param sessionId this is the id of the session which requested the prompt.
@@ -362,7 +307,7 @@ class PromptFeature private constructor(
 
     /**
      * Invoked when the user confirms the action on the dialog. This consumes
-     * the [PromptFeature] value from the [SessionState] indicated by [sessionId].
+     * the [WebPromptFeature] value from the [SessionState] indicated by [sessionId].
      *
      * @param sessionId that requested to show the dialog.
      * @param value an optional value provided by the dialog as a result of confirming the action.
@@ -428,7 +373,7 @@ class PromptFeature private constructor(
 
     /**
      * Invoked when the user is requesting to clear the selected value from the dialog.
-     * This consumes the [PromptFeature] value from the [SessionState] indicated by [sessionId].
+     * This consumes the [WebPromptFeature] value from the [SessionState] indicated by [sessionId].
      *
      * @param sessionId that requested to show the dialog.
      */
@@ -468,31 +413,14 @@ class PromptFeature private constructor(
     @Suppress("ComplexMethod", "LongMethod")
     @VisibleForTesting(otherwise = PRIVATE)
     internal fun handleDialogsRequest(
-        promptRequest: PromptRequest,
+        promptRequest: WebPromptRequest,
         session: SessionState
     ) {
         // Requests that are handled with dialogs
         val dialog = when (promptRequest) {
 
             is SaveLoginPrompt -> {
-                if (!isSaveLoginEnabled.invoke()) return
-
-                if (loginValidationDelegate == null) {
-                    logger.debug(
-                        "Ignoring received SaveLoginPrompt because PromptFeature." +
-                                "loginValidationDelegate is null. If you are trying to autofill logins, " +
-                                "try attaching a LoginValidationDelegate to PromptFeature"
-                    )
-                    return
-                }
-
-                SaveLoginDialogFragment.newInstance(
-                    sessionId = session.id,
-                    hint = promptRequest.hint,
-                    // For v1, we only handle a single login and drop all others on the floor
-                    login = promptRequest.logins[0],
-                    icon = session.content.icon
-                )
+                loginPromptHandler?.handleRequest(session, promptRequest)
             }
 
             is SingleChoice -> ChoiceDialogFragment.newInstance(
@@ -648,7 +576,7 @@ class PromptFeature private constructor(
             }
 
             else -> throw InvalidParameterException("Not valid prompt request type")
-        }
+        } ?: return
 
         dialog.feature = this
 
@@ -656,13 +584,13 @@ class PromptFeature private constructor(
             dialog.show(fragmentManager, FRAGMENT_TAG)
             activePrompt = WeakReference(dialog)
         } else {
-            (promptRequest as Dismissible).onDismiss()
+            (promptRequest as DismissiblePrompt).onDismiss()
             store.dispatch(ContentAction.ConsumePromptRequestAction(session.id))
         }
         promptAbuserDetector.updateJSDialogAbusedState()
     }
 
-    private fun canShowThisPrompt(promptRequest: PromptRequest): Boolean {
+    private fun canShowThisPrompt(promptRequest: WebPromptRequest): Boolean {
         return when (promptRequest) {
             is SingleChoice,
             is MultipleChoice,
@@ -673,35 +601,16 @@ class PromptFeature private constructor(
             is Authentication,
             is BeforeUnload,
             is Popup,
-            is SaveLoginPrompt,
-            is SelectLoginPrompt,
             is Share -> true
             is Alert, is TextPrompt, is Confirm, is Repost -> promptAbuserDetector.shouldShowMoreDialogs
         }
-    }
-
-    /**
-     * Dismisses the select login prompt if it is active and visible.
-     * @returns true if dismissCurrentLoginSelect is called otherwise false.
-     */
-    @VisibleForTesting
-    fun dismissLoginSelectPrompt(): Boolean {
-        (activePromptRequest as? SelectLoginPrompt)?.let { selectLoginPrompt ->
-            loginPicker?.let { loginPicker ->
-                if (loginPickerView?.asView()?.isVisible == true) {
-                    loginPicker.dismissCurrentLoginSelect(selectLoginPrompt)
-                    return true
-                }
-            }
-        }
-        return false
     }
 }
 
 internal fun BrowserStore.consumePromptFrom(
     sessionId: String?,
     activePrompt: WeakReference<PromptDialogFragment>? = null,
-    consume: (PromptRequest) -> Unit
+    consume: (WebPromptRequest) -> Unit
 ) {
     if (sessionId == null) {
         state.selectedTab

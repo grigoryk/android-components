@@ -10,7 +10,7 @@ import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.core.view.isVisible
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import mozilla.components.feature.prompts.PromptFeature
+import mozilla.components.feature.prompts.WebPromptFeature
 import mozilla.components.feature.prompts.R
 import mozilla.components.feature.prompts.R.id
 import mozilla.components.support.test.mock
@@ -83,7 +83,7 @@ class AlertDialogFragmentTest {
     @Test
     fun `Clicking on positive button notifies the feature`() {
 
-        val mockFeature: PromptFeature = mock()
+        val mockFeature: WebPromptFeature = mock()
 
         val fragment = spy(
             AlertDialogFragment.newInstance("sessionId", "title", "message", false)

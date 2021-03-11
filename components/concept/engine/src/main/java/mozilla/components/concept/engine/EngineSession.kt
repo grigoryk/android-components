@@ -15,7 +15,7 @@ import mozilla.components.concept.engine.manifest.WebAppManifest
 import mozilla.components.concept.engine.media.RecordingDevice
 import mozilla.components.concept.engine.mediasession.MediaSession
 import mozilla.components.concept.engine.permission.PermissionRequest
-import mozilla.components.concept.engine.prompt.PromptRequest
+import mozilla.components.concept.engine.prompt.WebPromptRequest
 import mozilla.components.concept.engine.window.WindowRequest
 import mozilla.components.concept.fetch.Response
 import mozilla.components.support.base.observer.Observable
@@ -72,7 +72,7 @@ abstract class EngineSession(
         fun onAppPermissionRequest(permissionRequest: PermissionRequest) = permissionRequest.reject()
         fun onContentPermissionRequest(permissionRequest: PermissionRequest) = permissionRequest.reject()
         fun onCancelContentPermissionRequest(permissionRequest: PermissionRequest) = Unit
-        fun onPromptRequest(promptRequest: PromptRequest) = Unit
+        fun onPromptRequest(promptRequest: WebPromptRequest) = Unit
 
         /**
          * User cancelled a repost prompt. Page will not be reloaded.

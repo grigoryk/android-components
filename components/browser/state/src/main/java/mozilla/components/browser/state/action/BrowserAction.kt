@@ -40,7 +40,7 @@ import mozilla.components.concept.engine.manifest.WebAppManifest
 import mozilla.components.concept.engine.media.RecordingDevice
 import mozilla.components.concept.engine.mediasession.MediaSession
 import mozilla.components.concept.engine.permission.PermissionRequest
-import mozilla.components.concept.engine.prompt.PromptRequest
+import mozilla.components.concept.engine.prompt.WebPromptRequest
 import mozilla.components.concept.engine.search.SearchRequest
 import mozilla.components.concept.engine.webextension.WebExtensionBrowserAction
 import mozilla.components.concept.engine.webextension.WebExtensionPageAction
@@ -374,13 +374,13 @@ sealed class ContentAction : BrowserAction() {
     data class ConsumeHitResultAction(val sessionId: String) : ContentAction()
 
     /**
-     * Updates the [PromptRequest] of the [ContentState] with the given [sessionId].
+     * Updates the [WebPromptRequest] of the [ContentState] with the given [sessionId].
      */
-    data class UpdatePromptRequestAction(val sessionId: String, val promptRequest: PromptRequest) :
+    data class UpdatePromptRequestAction(val sessionId: String, val promptRequest: WebPromptRequest) :
         ContentAction()
 
     /**
-     * Removes the [PromptRequest] of the [ContentState] with the given [sessionId].
+     * Removes the [WebPromptRequest] of the [ContentState] with the given [sessionId].
      */
     data class ConsumePromptRequestAction(val sessionId: String) : ContentAction()
 

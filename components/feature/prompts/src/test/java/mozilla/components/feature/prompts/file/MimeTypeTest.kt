@@ -22,7 +22,7 @@ import android.provider.MediaStore.Audio.Media.RECORD_SOUND_ACTION
 import android.provider.MediaStore.EXTRA_OUTPUT
 import android.webkit.MimeTypeMap
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import mozilla.components.concept.engine.prompt.PromptRequest
+import mozilla.components.concept.engine.prompt.WebPromptRequest
 import mozilla.components.support.test.robolectric.testContext
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -41,13 +41,13 @@ import org.robolectric.Shadows.shadowOf
 @RunWith(AndroidJUnit4::class)
 class MimeTypeTest {
 
-    private val request = PromptRequest.File(
+    private val request = WebPromptRequest.File(
         mimeTypes = emptyArray(),
         onSingleFileSelected = { _, _ -> },
         onMultipleFilesSelected = { _, _ -> },
         onDismiss = {}
     )
-    private val capture = PromptRequest.File.FacingMode.ANY
+    private val capture = WebPromptRequest.File.FacingMode.ANY
 
     private lateinit var context: Context
     private lateinit var packageManager: PackageManager
@@ -247,13 +247,13 @@ class MimeTypeTest {
             assertEquals(uri, photoUri)
         }
 
-        val anyCaptureRequest = request.copy(captureMode = PromptRequest.File.FacingMode.ANY)
+        val anyCaptureRequest = request.copy(captureMode = WebPromptRequest.File.FacingMode.ANY)
         image.buildIntent(context, anyCaptureRequest)?.run {
             assertEquals(action, ACTION_IMAGE_CAPTURE)
             assertEquals(1, extras?.size())
         }
 
-        val frontCaptureRequest = request.copy(captureMode = PromptRequest.File.FacingMode.FRONT_CAMERA)
+        val frontCaptureRequest = request.copy(captureMode = WebPromptRequest.File.FacingMode.FRONT_CAMERA)
         image.buildIntent(context, frontCaptureRequest)?.run {
             assertEquals(action, ACTION_IMAGE_CAPTURE)
             assertEquals(1, extras!!.get(MimeType.CAMERA_FACING))
@@ -261,7 +261,7 @@ class MimeTypeTest {
             assertEquals(true, extras!!.get(MimeType.USE_FRONT_CAMERA))
         }
 
-        val backCaptureRequest = request.copy(captureMode = PromptRequest.File.FacingMode.BACK_CAMERA)
+        val backCaptureRequest = request.copy(captureMode = WebPromptRequest.File.FacingMode.BACK_CAMERA)
         image.buildIntent(context, backCaptureRequest)?.run {
             assertEquals(action, ACTION_IMAGE_CAPTURE)
             assertEquals(0, extras!!.get(MimeType.CAMERA_FACING))
@@ -280,13 +280,13 @@ class MimeTypeTest {
             assertNull(extras)
         }
 
-        val anyCaptureRequest = request.copy(captureMode = PromptRequest.File.FacingMode.ANY)
+        val anyCaptureRequest = request.copy(captureMode = WebPromptRequest.File.FacingMode.ANY)
         MimeType.Video.buildIntent(context, anyCaptureRequest)?.run {
             assertEquals(action, ACTION_VIDEO_CAPTURE)
             assertNull(extras)
         }
 
-        val frontCaptureRequest = request.copy(captureMode = PromptRequest.File.FacingMode.FRONT_CAMERA)
+        val frontCaptureRequest = request.copy(captureMode = WebPromptRequest.File.FacingMode.FRONT_CAMERA)
         MimeType.Video.buildIntent(context, frontCaptureRequest)?.run {
             assertEquals(action, ACTION_VIDEO_CAPTURE)
             assertEquals(1, extras!!.get(MimeType.CAMERA_FACING))
@@ -294,7 +294,7 @@ class MimeTypeTest {
             assertEquals(true, extras!!.get(MimeType.USE_FRONT_CAMERA))
         }
 
-        val backCaptureRequest = request.copy(captureMode = PromptRequest.File.FacingMode.BACK_CAMERA)
+        val backCaptureRequest = request.copy(captureMode = WebPromptRequest.File.FacingMode.BACK_CAMERA)
         MimeType.Video.buildIntent(context, backCaptureRequest)?.run {
             assertEquals(action, ACTION_VIDEO_CAPTURE)
             assertEquals(0, extras!!.get(MimeType.CAMERA_FACING))

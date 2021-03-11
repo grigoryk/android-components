@@ -10,7 +10,7 @@ import androidx.annotation.StringRes
 import androidx.annotation.VisibleForTesting
 
 /**
- * Wrapper to hold shared functionality between activities and fragments for [PromptFeature].
+ * Wrapper to hold shared functionality between activities and fragments for [WebPromptFeature].
  */
 internal sealed class PromptContainer {
 

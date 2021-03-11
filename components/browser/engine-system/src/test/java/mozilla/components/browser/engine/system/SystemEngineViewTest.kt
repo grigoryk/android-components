@@ -39,7 +39,7 @@ import mozilla.components.concept.engine.HitResult
 import mozilla.components.concept.engine.content.blocking.Tracker
 import mozilla.components.concept.engine.history.HistoryTrackingDelegate
 import mozilla.components.concept.engine.permission.PermissionRequest
-import mozilla.components.concept.engine.prompt.PromptRequest
+import mozilla.components.concept.engine.prompt.WebPromptRequest
 import mozilla.components.concept.engine.request.RequestInterceptor
 import mozilla.components.concept.engine.window.WindowRequest
 import mozilla.components.concept.fetch.Response
@@ -1135,7 +1135,7 @@ class SystemEngineViewTest {
         var onSingleFileSelectedWasCalled = false
         var onMultipleFilesSelectedWasCalled = false
         var onDismissWasCalled = false
-        var request: PromptRequest? = null
+        var request: WebPromptRequest? = null
 
         val callback = ValueCallback<Array<Uri>> {
 
@@ -1151,7 +1151,7 @@ class SystemEngineViewTest {
         }
 
         engineSession.register(object : EngineSession.Observer {
-            override fun onPromptRequest(promptRequest: PromptRequest) {
+            override fun onPromptRequest(promptRequest: WebPromptRequest) {
                 request = promptRequest
             }
         })
@@ -1164,8 +1164,8 @@ class SystemEngineViewTest {
 
         engineSession.webView.webChromeClient!!.onShowFileChooser(null, callback, mockFileChooserParams)
 
-        val filePickerRequest = request as PromptRequest.File
-        assertTrue(request is PromptRequest.File)
+        val filePickerRequest = request as WebPromptRequest.File
+        assertTrue(request is WebPromptRequest.File)
 
         filePickerRequest.onSingleFileSelected(mock(), mock())
         assertTrue(onSingleFileSelectedWasCalled)
@@ -1206,10 +1206,10 @@ class SystemEngineViewTest {
     fun `Calling onJsAlert must provide an Alert PromptRequest`() {
         val engineSession = SystemEngineSession(testContext)
         val engineView = SystemEngineView(testContext)
-        var request: PromptRequest? = null
+        var request: WebPromptRequest? = null
 
         engineSession.register(object : EngineSession.Observer {
-            override fun onPromptRequest(promptRequest: PromptRequest) {
+            override fun onPromptRequest(promptRequest: WebPromptRequest) {
                 request = promptRequest
             }
         })
@@ -1220,8 +1220,8 @@ class SystemEngineViewTest {
 
         engineSession.webView.webChromeClient!!.onJsAlert(mock(), "http://www.mozilla.org", "message", mockJSResult)
 
-        val alertRequest = request as PromptRequest.Alert
-        assertTrue(request is PromptRequest.Alert)
+        val alertRequest = request as WebPromptRequest.Alert
+        assertTrue(request is WebPromptRequest.Alert)
 
         assertTrue(alertRequest.title.contains("mozilla.org"))
         assertEquals(alertRequest.message, "message")
@@ -1237,10 +1237,10 @@ class SystemEngineViewTest {
     fun `calling onJsPrompt must provide a TextPrompt PromptRequest`() {
         val engineSession = SystemEngineSession(testContext)
         val engineView = SystemEngineView(testContext)
-        var request: PromptRequest? = null
+        var request: WebPromptRequest? = null
 
         engineSession.register(object : EngineSession.Observer {
-            override fun onPromptRequest(promptRequest: PromptRequest) {
+            override fun onPromptRequest(promptRequest: WebPromptRequest) {
                 request = promptRequest
             }
         })
@@ -1257,8 +1257,8 @@ class SystemEngineViewTest {
             mockJSPromptResult
         )
 
-        val textPromptRequest = request as PromptRequest.TextPrompt
-        assertTrue(request is PromptRequest.TextPrompt)
+        val textPromptRequest = request as WebPromptRequest.TextPrompt
+        assertTrue(request is WebPromptRequest.TextPrompt)
 
         assertTrue(textPromptRequest.title.contains("mozilla.org"))
         assertEquals(textPromptRequest.hasShownManyDialogs, false)
@@ -1279,10 +1279,10 @@ class SystemEngineViewTest {
         val engineSession = SystemEngineSession(testContext)
         val engineView = SystemEngineView(testContext)
 
-        var request: PromptRequest? = null
+        var request: WebPromptRequest? = null
 
         engineSession.register(object : EngineSession.Observer {
-            override fun onPromptRequest(promptRequest: PromptRequest) {
+            override fun onPromptRequest(promptRequest: WebPromptRequest) {
                 request = promptRequest
             }
         })
@@ -1308,10 +1308,10 @@ class SystemEngineViewTest {
     fun `calling onJsConfirm must provide a Confirm PromptRequest`() {
         val engineSession = SystemEngineSession(testContext)
         val engineView = SystemEngineView(testContext)
-        var request: PromptRequest? = null
+        var request: WebPromptRequest? = null
 
         engineSession.register(object : EngineSession.Observer {
-            override fun onPromptRequest(promptRequest: PromptRequest) {
+            override fun onPromptRequest(promptRequest: WebPromptRequest) {
                 request = promptRequest
             }
         })
@@ -1327,8 +1327,8 @@ class SystemEngineViewTest {
             mockJSPromptResult
         )
 
-        val confirmPromptRequest = request as PromptRequest.Confirm
-        assertTrue(request is PromptRequest.Confirm)
+        val confirmPromptRequest = request as WebPromptRequest.Confirm
+        assertTrue(request is WebPromptRequest.Confirm)
 
         assertTrue(confirmPromptRequest.title.contains("mozilla.org"))
         assertEquals(confirmPromptRequest.hasShownManyDialogs, false)
@@ -1411,10 +1411,10 @@ class SystemEngineViewTest {
     fun `calling onReceivedHttpAuthRequest must provide an Authentication PromptRequest`() {
         val engineSession = SystemEngineSession(testContext)
         val engineView = SystemEngineView(testContext)
-        var request: PromptRequest? = null
+        var request: WebPromptRequest? = null
 
         engineSession.register(object : EngineSession.Observer {
-            override fun onPromptRequest(promptRequest: PromptRequest) {
+            override fun onPromptRequest(promptRequest: WebPromptRequest) {
                 request = promptRequest
             }
         })
@@ -1426,8 +1426,8 @@ class SystemEngineViewTest {
 
         engineSession.webView.webViewClient.onReceivedHttpAuthRequest(engineSession.webView, authHandler, host, realm)
 
-        val authRequest = request as PromptRequest.Authentication
-        assertTrue(request is PromptRequest.Authentication)
+        val authRequest = request as WebPromptRequest.Authentication
+        assertTrue(request is WebPromptRequest.Authentication)
 
         assertEquals(authRequest.title, "")
 
@@ -1442,10 +1442,10 @@ class SystemEngineViewTest {
     fun `calling onReceivedHttpAuthRequest with a null session must not provide an Authentication PromptRequest`() {
         val engineSession = SystemEngineSession(testContext)
         val engineView = SystemEngineView(testContext)
-        var request: PromptRequest? = null
+        var request: WebPromptRequest? = null
 
         engineSession.register(object : EngineSession.Observer {
-            override fun onPromptRequest(promptRequest: PromptRequest) {
+            override fun onPromptRequest(promptRequest: WebPromptRequest) {
                 request = promptRequest
             }
         })
@@ -1465,10 +1465,10 @@ class SystemEngineViewTest {
         val engineSession = SystemEngineSession(testContext)
         val engineView = SystemEngineView(testContext)
 
-        var request: PromptRequest? = null
+        var request: WebPromptRequest? = null
 
         engineSession.register(object : EngineSession.Observer {
-            override fun onPromptRequest(promptRequest: PromptRequest) {
+            override fun onPromptRequest(promptRequest: WebPromptRequest) {
                 request = promptRequest
             }
         })
@@ -1480,14 +1480,14 @@ class SystemEngineViewTest {
 
         val longRealm = "Login with a user name of httpwatch and a different password each time"
         webView.webViewClient.onReceivedHttpAuthRequest(webView, authHandler, host, longRealm)
-        assertTrue((request as PromptRequest.Authentication).message.endsWith("differen…”"))
+        assertTrue((request as WebPromptRequest.Authentication).message.endsWith("differen…”"))
 
         val emptyRealm = ""
         webView.webViewClient.onReceivedHttpAuthRequest(webView, authHandler, host, emptyRealm)
         val noRealmMessageTail = testContext.getString(R.string.mozac_browser_engine_system_auth_no_realm_message).let {
             it.substring(it.length - 10)
         }
-        assertTrue((request as PromptRequest.Authentication).message.endsWith(noRealmMessageTail))
+        assertTrue((request as WebPromptRequest.Authentication).message.endsWith(noRealmMessageTail))
     }
 
     @Test
@@ -1496,10 +1496,10 @@ class SystemEngineViewTest {
     fun `onReceivedHttpAuthRequest takes credentials from WebView`() {
         val engineSession = SystemEngineSession(testContext)
         val engineView = SystemEngineView(testContext)
-        var request: PromptRequest? = null
+        var request: WebPromptRequest? = null
 
         engineSession.register(object : EngineSession.Observer {
-            override fun onPromptRequest(promptRequest: PromptRequest) {
+            override fun onPromptRequest(promptRequest: WebPromptRequest) {
                 request = promptRequest
             }
         })
@@ -1521,20 +1521,20 @@ class SystemEngineViewTest {
         val validCredentials = arrayOf(userName, password)
         whenever(engineSession.webView.getHttpAuthUsernamePassword(host, realm)).thenReturn(validCredentials)
         webViewClient.onReceivedHttpAuthRequest(engineSession.webView, mock(), host, realm)
-        assertEquals((request as PromptRequest.Authentication).userName, userName)
-        assertEquals((request as PromptRequest.Authentication).password, password)
+        assertEquals((request as WebPromptRequest.Authentication).userName, userName)
+        assertEquals((request as WebPromptRequest.Authentication).password, password)
 
         val nullCredentials = null
         whenever(engineSession.webView.getHttpAuthUsernamePassword(host, realm)).thenReturn(nullCredentials)
         webViewClient.onReceivedHttpAuthRequest(engineSession.webView, mock(), host, realm)
-        assertEquals((request as PromptRequest.Authentication).userName, "")
-        assertEquals((request as PromptRequest.Authentication).password, "")
+        assertEquals((request as WebPromptRequest.Authentication).userName, "")
+        assertEquals((request as WebPromptRequest.Authentication).password, "")
 
         val credentialsWithNulls = arrayOf<String?>(null, null)
         whenever(engineSession.webView.getHttpAuthUsernamePassword(host, realm)).thenReturn(credentialsWithNulls)
         webViewClient.onReceivedHttpAuthRequest(engineSession.webView, mock(), host, realm)
-        assertEquals((request as PromptRequest.Authentication).userName, "")
-        assertEquals((request as PromptRequest.Authentication).password, "")
+        assertEquals((request as WebPromptRequest.Authentication).userName, "")
+        assertEquals((request as WebPromptRequest.Authentication).password, "")
     }
 
     @Test
@@ -1542,10 +1542,10 @@ class SystemEngineViewTest {
     fun `onReceivedHttpAuthRequest uses WebViewDatabase on Oreo+`() {
         val engineSession = spy(SystemEngineSession(testContext))
         val engineView = SystemEngineView(testContext)
-        var request: PromptRequest? = null
+        var request: WebPromptRequest? = null
 
         engineSession.register(object : EngineSession.Observer {
-            override fun onPromptRequest(promptRequest: PromptRequest) {
+            override fun onPromptRequest(promptRequest: WebPromptRequest) {
                 request = promptRequest
             }
         })
@@ -1561,7 +1561,7 @@ class SystemEngineViewTest {
 
         engineSession.webView.webViewClient.onReceivedHttpAuthRequest(engineSession.webView, mock(), host, realm)
 
-        val authRequest = request as PromptRequest.Authentication
+        val authRequest = request as WebPromptRequest.Authentication
         assertEquals(authRequest.userName, userName)
         assertEquals(authRequest.password, password)
     }

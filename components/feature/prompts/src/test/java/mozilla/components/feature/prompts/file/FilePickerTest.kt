@@ -22,7 +22,7 @@ import mozilla.components.browser.state.state.ContentState
 import mozilla.components.browser.state.state.CustomTabSessionState
 import mozilla.components.browser.state.state.TabSessionState
 import mozilla.components.browser.state.store.BrowserStore
-import mozilla.components.concept.engine.prompt.PromptRequest
+import mozilla.components.concept.engine.prompt.WebPromptRequest
 import mozilla.components.feature.prompts.PromptContainer
 import mozilla.components.feature.prompts.file.FilePicker.Companion.FILE_PICKER_ACTIVITY_REQUEST_CODE
 import mozilla.components.support.test.any
@@ -52,7 +52,7 @@ class FilePickerTest {
 
     private val noopSingle: (Context, Uri) -> Unit = { _, _ -> }
     private val noopMulti: (Context, Array<Uri>) -> Unit = { _, _ -> }
-    private val request = PromptRequest.File(
+    private val request = WebPromptRequest.File(
         mimeTypes = emptyArray(),
         onSingleFileSelected = noopSingle,
         onMultipleFilesSelected = noopMulti,
@@ -240,7 +240,7 @@ class FilePickerTest {
         var wasDismissed = false
         val onConfirm: (Boolean) -> Unit = { wasConfirmed = true }
         val onDismiss = { wasDismissed = true }
-        val invalidRequest = PromptRequest.Alert("", "", false, onDismiss, onConfirm)
+        val invalidRequest = WebPromptRequest.Alert("", "", false, onDismiss, onConfirm)
         val spiedFilePicker = spy(filePicker)
         val selected = prepareSelectedSession(invalidRequest)
         val intent = Intent()
@@ -299,7 +299,7 @@ class FilePickerTest {
         stubContext()
         captureUri = "randomSaveLocationOnDisk".toUri()
         val onSingleFileSelection: (Context, Uri) -> Unit = { _, _ -> Unit }
-        val promptRequest = mock<PromptRequest.File>()
+        val promptRequest = mock<WebPromptRequest.File>()
         doReturn(onSingleFileSelection).`when`(promptRequest).onSingleFileSelected
 
         filePicker.handleFilePickerIntentResult(null, promptRequest)
@@ -311,7 +311,7 @@ class FilePickerTest {
     fun `handleFilePickerIntentResult called with valid Intent will make captureUri null also if request is dismissed`() {
         stubContext()
         captureUri = "randomSaveLocationOnDisk".toUri()
-        val promptRequest = mock<PromptRequest.File>()
+        val promptRequest = mock<WebPromptRequest.File>()
         doReturn({ }).`when`(promptRequest).onDismiss
         // A private file cannot be picked so the request will be dismissed.
         val intent = Intent().apply {
@@ -328,7 +328,7 @@ class FilePickerTest {
         stubContext()
         captureUri = "randomSaveLocationOnDisk".toUri()
         val onMultipleFilesSelected: (Context, Array<Uri>) -> Unit = { _, _ -> Unit }
-        val promptRequest = mock<PromptRequest.File>()
+        val promptRequest = mock<WebPromptRequest.File>()
         doReturn(onMultipleFilesSelected).`when`(promptRequest).onMultipleFilesSelected
         doReturn(true).`when`(promptRequest).isMultipleFilesSelection
         val intent = Intent().apply {
@@ -344,7 +344,7 @@ class FilePickerTest {
     fun `handleFilePickerIntentResult for multiple files selection will make captureUri null also if request is dismissed`() {
         stubContext()
         captureUri = "randomSaveLocationOnDisk".toUri()
-        val promptRequest = mock<PromptRequest.File>()
+        val promptRequest = mock<WebPromptRequest.File>()
         doReturn({ }).`when`(promptRequest).onDismiss
         doReturn(true).`when`(promptRequest).isMultipleFilesSelection
         // A private file cannot be picked so the request will be dismissed.
@@ -358,8 +358,8 @@ class FilePickerTest {
         assertNull(captureUri)
     }
 
-    private fun prepareSelectedSession(request: PromptRequest? = null): TabSessionState {
-        val promptRequest: PromptRequest = request ?: mock()
+    private fun prepareSelectedSession(request: WebPromptRequest? = null): TabSessionState {
+        val promptRequest: WebPromptRequest = request ?: mock()
         val content: ContentState = mock()
         whenever(content.promptRequest).thenReturn(promptRequest)
 

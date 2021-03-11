@@ -32,7 +32,7 @@ import mozilla.components.concept.engine.history.HistoryItem
 import mozilla.components.concept.engine.manifest.WebAppManifest
 import mozilla.components.concept.engine.mediasession.MediaSession
 import mozilla.components.concept.engine.permission.PermissionRequest
-import mozilla.components.concept.engine.prompt.PromptRequest
+import mozilla.components.concept.engine.prompt.WebPromptRequest
 import mozilla.components.concept.engine.window.WindowRequest
 import mozilla.components.concept.fetch.Response
 import mozilla.components.support.test.eq
@@ -629,7 +629,7 @@ class EngineObserverTest {
 
     @Test
     fun engineObserverHandlesPromptRequest() {
-        val promptRequest = mock(PromptRequest::class.java)
+        val promptRequest = mock(WebPromptRequest::class.java)
         val session = Session(id = "test-session", initialUrl = "")
         val store: BrowserStore = mock()
         val observer = EngineObserver(session, store)

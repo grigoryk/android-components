@@ -21,7 +21,7 @@ import android.provider.MediaStore.Audio.Media.RECORD_SOUND_ACTION
 import android.provider.MediaStore.EXTRA_OUTPUT
 import android.webkit.MimeTypeMap
 import androidx.core.content.FileProvider.getUriForFile
-import mozilla.components.concept.engine.prompt.PromptRequest.File
+import mozilla.components.concept.engine.prompt.WebPromptRequest.File
 import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.Date

@@ -22,7 +22,7 @@ import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.HitResult
 import mozilla.components.concept.engine.history.HistoryItem
 import mozilla.components.concept.engine.manifest.WebAppManifest
-import mozilla.components.concept.engine.prompt.PromptRequest
+import mozilla.components.concept.engine.prompt.WebPromptRequest
 import mozilla.components.concept.engine.window.WindowRequest
 import mozilla.components.support.test.ext.joinBlocking
 import mozilla.components.support.test.mock
@@ -473,7 +473,7 @@ class ContentActionTest {
     fun `UpdatePromptRequestAction updates request`() {
         assertNull(tab.content.promptRequest)
 
-        val promptRequest1: PromptRequest = mock()
+        val promptRequest1: WebPromptRequest = mock()
 
         store.dispatch(
             ContentAction.UpdatePromptRequestAction(tab.id, promptRequest1)
@@ -481,7 +481,7 @@ class ContentActionTest {
 
         assertEquals(promptRequest1, tab.content.promptRequest)
 
-        val promptRequest2: PromptRequest = mock()
+        val promptRequest2: WebPromptRequest = mock()
 
         store.dispatch(
             ContentAction.UpdatePromptRequestAction(tab.id, promptRequest2)
@@ -492,7 +492,7 @@ class ContentActionTest {
 
     @Test
     fun `ConsumePromptRequestAction removes request`() {
-        val promptRequest: PromptRequest = mock()
+        val promptRequest: WebPromptRequest = mock()
 
         store.dispatch(
             ContentAction.UpdatePromptRequestAction(tab.id, promptRequest)

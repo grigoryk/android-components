@@ -4,11 +4,11 @@
 
 package mozilla.components.concept.engine.prompt
 
-import mozilla.components.concept.engine.prompt.PromptRequest.Alert
-import mozilla.components.concept.engine.prompt.PromptRequest.MenuChoice
-import mozilla.components.concept.engine.prompt.PromptRequest.MultipleChoice
-import mozilla.components.concept.engine.prompt.PromptRequest.SingleChoice
-import mozilla.components.concept.engine.prompt.PromptRequest.TimeSelection.Type
+import mozilla.components.concept.engine.prompt.WebPromptRequest.Alert
+import mozilla.components.concept.engine.prompt.WebPromptRequest.MenuChoice
+import mozilla.components.concept.engine.prompt.WebPromptRequest.MultipleChoice
+import mozilla.components.concept.engine.prompt.WebPromptRequest.SingleChoice
+import mozilla.components.concept.engine.prompt.WebPromptRequest.TimeSelection.Type
 import mozilla.components.concept.storage.Login
 import mozilla.components.support.test.mock
 import org.junit.Assert.assertEquals
@@ -18,7 +18,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.util.Date
 
-class PromptRequestTest {
+class WebPromptRequestTest {
 
     @Test
     fun `Create prompt requests`() {
@@ -48,7 +48,7 @@ class PromptRequestTest {
         alert.onDismiss()
         alert.onConfirm(true)
 
-        val textPrompt = PromptRequest.TextPrompt(
+        val textPrompt = WebPromptRequest.TextPrompt(
             "title",
             "label",
             "value",
@@ -62,7 +62,7 @@ class PromptRequestTest {
         textPrompt.onDismiss()
         textPrompt.onConfirm(true, "")
 
-        val dateRequest = PromptRequest.TimeSelection(
+        val dateRequest = WebPromptRequest.TimeSelection(
             "title",
             Date(),
             Date(),
@@ -77,27 +77,27 @@ class PromptRequestTest {
         dateRequest.onConfirm(Date())
         dateRequest.onClear()
 
-        val filePickerRequest = PromptRequest.File(
+        val filePickerRequest = WebPromptRequest.File(
             emptyArray(),
             true,
-            PromptRequest.File.FacingMode.NONE,
+            WebPromptRequest.File.FacingMode.NONE,
             { _, _ -> },
             { _, _ -> }
         ) {}
         assertTrue(filePickerRequest.mimeTypes.isEmpty())
         assertTrue(filePickerRequest.isMultipleFilesSelection)
-        assertEquals(filePickerRequest.captureMode, PromptRequest.File.FacingMode.NONE)
+        assertEquals(filePickerRequest.captureMode, WebPromptRequest.File.FacingMode.NONE)
         filePickerRequest.onSingleFileSelected(mock(), mock())
         filePickerRequest.onMultipleFilesSelected(mock(), emptyArray())
         filePickerRequest.onDismiss()
 
-        val promptRequest = PromptRequest.Authentication(
+        val promptRequest = WebPromptRequest.Authentication(
             "title",
             "message",
             "username",
             "password",
-            PromptRequest.Authentication.Method.HOST,
-            PromptRequest.Authentication.Level.NONE,
+            WebPromptRequest.Authentication.Method.HOST,
+            WebPromptRequest.Authentication.Level.NONE,
             false,
             false,
             false,
@@ -119,13 +119,13 @@ class PromptRequestTest {
         val onDismiss: () -> Unit = {
         }
 
-        val colorRequest = PromptRequest.Color("defaultColor", onConfirm, onDismiss)
+        val colorRequest = WebPromptRequest.Color("defaultColor", onConfirm, onDismiss)
         assertEquals(colorRequest.defaultColor, "defaultColor")
 
         colorRequest.onConfirm("")
         colorRequest.onDismiss()
 
-        val popupRequest = PromptRequest.Popup("http://mozilla.slack.com/", {}, {})
+        val popupRequest = WebPromptRequest.Popup("http://mozilla.slack.com/", {}, {})
 
         assertEquals(popupRequest.targetUri, "http://mozilla.slack.com/")
         popupRequest.onAllow()
@@ -140,7 +140,7 @@ class PromptRequestTest {
         val onConfirmNeutralButton: (Boolean) -> Unit = {
         }
 
-        val confirmRequest = PromptRequest.Confirm(
+        val confirmRequest = WebPromptRequest.Confirm(
             "title",
             "message",
             false,
@@ -166,14 +166,14 @@ class PromptRequestTest {
 
         val login = Login(null, "origin", username = "username", password = "password")
         val loginSaveRequest =
-            PromptRequest.SaveLoginPrompt(0, listOf(login), onLoginDismiss, onLoginConfirm)
+            WebPromptRequest.SaveLoginPrompt(0, listOf(login), onLoginDismiss, onLoginConfirm)
         assertEquals(loginSaveRequest.logins, listOf(login))
         assertEquals(loginSaveRequest.hint, 0)
         loginSaveRequest.onConfirm(login)
         loginSaveRequest.onDismiss()
 
         val loginSelectRequest =
-            PromptRequest.SelectLoginPrompt(listOf(login), onLoginDismiss, onLoginConfirm)
+            WebPromptRequest.SelectLoginPrompt(listOf(login), onLoginDismiss, onLoginConfirm)
         assertEquals(loginSelectRequest.logins, listOf(login))
         loginSelectRequest.onConfirm(login)
         loginSelectRequest.onDismiss()
@@ -181,7 +181,7 @@ class PromptRequestTest {
         // Now testing that a Repost PromptRequest can be successfully instantiated
         var onAcceptWasCalled = false
         var onDismissWasCalled = false
-        val repostRequest = PromptRequest.Repost(
+        val repostRequest = WebPromptRequest.Repost(
             onConfirm = {
                 onAcceptWasCalled = true
             },
