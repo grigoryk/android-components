@@ -52,4 +52,5 @@ interface SyncableStore {
      * @return raw internal handle that could be used for referencing underlying [PlacesApi]. Use it with SyncManager.
      */
     fun getHandle(): Long
+    fun registerWithSyncManager()
 }

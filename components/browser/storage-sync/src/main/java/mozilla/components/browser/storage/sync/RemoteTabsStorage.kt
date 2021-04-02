@@ -105,6 +105,10 @@ open class RemoteTabsStorage : Storage, SyncableStore {
     override fun getHandle(): Long {
         return api.getHandle()
     }
+
+    override fun registerWithSyncManager() {
+        throw NotImplementedError("Use getHandle instead")
+    }
 }
 
 /**

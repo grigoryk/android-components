@@ -192,4 +192,8 @@ open class PlacesBookmarksStorage(context: Context) : PlacesStorage(context), Bo
     override fun getHandle(): Long {
         return places.getHandle()
     }
+
+    override fun registerWithSyncManager() {
+        throw NotImplementedError("Use getHandle instead")
+    }
 }

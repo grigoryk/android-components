@@ -12,6 +12,8 @@ import mozilla.appservices.places.VisitObservation
 import mozilla.components.concept.base.crash.CrashReporting
 import mozilla.components.concept.storage.FrecencyThresholdOption
 import mozilla.components.concept.storage.HistoryAutocompleteResult
+import mozilla.components.concept.storage.HistoryMetadata
+import mozilla.components.concept.storage.HistoryMetadataStorage
 import mozilla.components.concept.storage.HistoryStorage
 import mozilla.components.concept.storage.PageObservation
 import mozilla.components.concept.storage.PageVisit
@@ -35,7 +37,7 @@ const val AUTOCOMPLETE_SOURCE_NAME = "placesHistory"
 open class PlacesHistoryStorage(
     context: Context,
     crashReporter: CrashReporting? = null
-) : PlacesStorage(context, crashReporter), HistoryStorage, SyncableStore {
+) : PlacesStorage(context, crashReporter), HistoryStorage, HistoryMetadataStorage, SyncableStore {
 
     override val logger = Logger("PlacesHistoryStorage")
 
@@ -228,5 +230,29 @@ open class PlacesHistoryStorage(
      */
     override fun getHandle(): Long {
         return places.getHandle()
+    }
+
+    override fun registerWithSyncManager() {
+        throw NotImplementedError("Use getHandle instead")
+    }
+
+    override suspend fun getLatestHistoryMetadataForUrl(url: String): HistoryMetadata? {
+        return places.reader().getLatestHistoryMetadataForUrl(url)?.into()
+    }
+
+    override suspend fun getHistoryMetadataViewedSince(timestamp: Long): List<HistoryMetadata> {
+        TODO("Not yet implemented")
+    }
+
+    override suspend fun getHistoryMetadataViewedBetween(start: Long, end: Long): List<HistoryMetadata> {
+        TODO("Not yet implemented")
+    }
+
+    override suspend fun queryHistoryMetadata(query: String, limit: Int): List<HistoryMetadata> {
+        TODO("Not yet implemented")
+    }
+
+    override suspend fun addHistoryMetadata(metadata: HistoryMetadata) {
+        places.writer().addHistoryMetadata(metadata.into())
     }
 }

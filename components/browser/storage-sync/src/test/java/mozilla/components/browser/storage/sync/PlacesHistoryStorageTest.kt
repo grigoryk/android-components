@@ -925,6 +925,11 @@ class PlacesHistoryStorageTest {
             assertEquals(VisitType.LINK, this.visitType)
         }
     }
+
+    @Test
+    fun `get latest history metadata by url`() = runBlocking {
+        assertNull(history.getLatestHistoryMetadataForUrl("http://www.mozilla.org"))
+    }
 }
 
 fun getTestPath(path: String): File {

@@ -14,6 +14,7 @@ import mozilla.appservices.places.SyncAuthInfo
 import mozilla.components.concept.storage.BookmarkNode
 import mozilla.components.concept.storage.BookmarkNodeType
 import mozilla.components.concept.storage.FrecencyThresholdOption
+import mozilla.components.concept.storage.HistoryMetadata
 import mozilla.components.concept.storage.TopFrecentSiteInfo
 import mozilla.components.concept.storage.VisitInfo
 import mozilla.components.concept.storage.VisitType
@@ -100,4 +101,30 @@ internal fun BookmarkTreeNode.asBookmarkNode(): BookmarkNode {
             BookmarkNode(BookmarkNodeType.SEPARATOR, this.guid, this.parentGUID, this.position, null, null, null)
         }
     }
+}
+
+internal fun mozilla.appservices.places.HistoryMetadata.into(): HistoryMetadata {
+    return HistoryMetadata(
+        url = this.url,
+        title = this.title,
+        firstViewTime = this.firstViewTime,
+        lastViewTime = this.lastViewTime,
+        totalViewTime = this.totalViewTime,
+        searchTerm = this.searchTerm,
+        isMedia = this.isMedia,
+        parentDomain = this.parentDomain
+    )
+}
+
+internal fun HistoryMetadata.into(): mozilla.appservices.places.HistoryMetadata {
+    return mozilla.appservices.places.HistoryMetadata(
+        url = this.url,
+        title = this.title,
+        firstViewTime = this.firstViewTime,
+        lastViewTime = this.lastViewTime,
+        totalViewTime = this.totalViewTime,
+        searchTerm = this.searchTerm,
+        isMedia = this.isMedia,
+        parentDomain = this.parentDomain
+    )
 }
