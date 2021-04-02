@@ -111,7 +111,8 @@ interface CreditCardsAddressesStorage {
  *
  * @property guid The unique identifier for this credit card.
  * @property billingName The credit card billing name.
- * @property cardNumber The credit card number.
+ * @property encryptedCardNumber The encrypted credit card number.
+ * @property cardNumberLast4 The last 4 digits of the credit card number.
  * @property expiryMonth The credit card expiry month.
  * @property expiryYear The credit card expiry year.
  * @property cardType The credit card network ID.
@@ -124,7 +125,8 @@ interface CreditCardsAddressesStorage {
 data class CreditCard(
     val guid: String,
     val billingName: String,
-    val cardNumber: String,
+    val encryptedCardNumber: String,
+    val cardNumberLast4: String,
     val expiryMonth: Long,
     val expiryYear: Long,
     val cardType: String,
@@ -138,14 +140,16 @@ data class CreditCard(
  * Information about a new credit card. This is what you pass to create or update a credit card.
  *
  * @property billingName The credit card billing name.
- * @property cardNumber The credit card number.
+ * @property encryptedCardNumber The encrypted credit card number.
+ * @property cardNumberLast4 The last 4 digits of the credit card number.
  * @property expiryMonth The credit card expiry month.
  * @property expiryYear The credit card expiry year.
  * @property cardType The credit card network ID.
  */
 data class UpdatableCreditCardFields(
     val billingName: String,
-    val cardNumber: String,
+    val encryptedCardNumber: String,
+    val cardNumberLast4: String,
     val expiryMonth: Long,
     val expiryYear: Long,
     val cardType: String

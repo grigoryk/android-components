@@ -32,10 +32,11 @@ class AutofillCreditCardsAddressesStorageTest {
     }
 
     @Test
-    fun `addCreditCard`() = runBlocking {
+    fun `add credit card`() = runBlocking {
         val creditCardFields = UpdatableCreditCardFields(
             billingName = "Jon Doe",
-            cardNumber = "4111111111111111",
+            encryptedCardNumber = "xxxxxxxxxxxxxxxxxxxxx",
+            cardNumberLast4 = "1234",
             expiryMonth = 12,
             expiryYear = 2028,
             cardType = "amex"
@@ -45,17 +46,19 @@ class AutofillCreditCardsAddressesStorageTest {
         assertNotNull(creditCard)
 
         assertEquals(creditCardFields.billingName, creditCard.billingName)
-        assertEquals(creditCardFields.cardNumber, creditCard.cardNumber)
+        assertEquals(creditCardFields.encryptedCardNumber, creditCard.encryptedCardNumber)
+        assertEquals(creditCardFields.cardNumberLast4, creditCard.cardNumberLast4)
         assertEquals(creditCardFields.expiryMonth, creditCard.expiryMonth)
         assertEquals(creditCardFields.expiryYear, creditCard.expiryYear)
         assertEquals(creditCardFields.cardType, creditCard.cardType)
     }
 
     @Test
-    fun `getCreditCard`() = runBlocking {
+    fun `get credit card`() = runBlocking {
         val creditCardFields = UpdatableCreditCardFields(
             billingName = "Jon Doe",
-            cardNumber = "4111111111111111",
+            encryptedCardNumber = "xxxxxxxxxxxxxxxxxxxxx",
+            cardNumberLast4 = "1234",
             expiryMonth = 12,
             expiryYear = 2028,
             cardType = "amex"
@@ -66,27 +69,30 @@ class AutofillCreditCardsAddressesStorageTest {
     }
 
     @Test
-    fun `getAllCreditCards`() = runBlocking {
+    fun `get all credit cards`() = runBlocking {
         var creditCards = storage.getAllCreditCards()
         assertEquals(0, creditCards.size)
 
         val creditCardFields1 = UpdatableCreditCardFields(
             billingName = "Jane Fields",
-            cardNumber = "4111111111111111",
+            encryptedCardNumber = "xxxxxxxxxxxxxxxxxxxxx",
+            cardNumberLast4 = "1234",
             expiryMonth = 12,
             expiryYear = 2028,
             cardType = "amex"
         )
         val creditCardFields2 = UpdatableCreditCardFields(
             billingName = "Banana Apple",
-            cardNumber = "4111111111111112",
+            encryptedCardNumber = "xxxxxxxxxxxxxxxxxxxx2",
+            cardNumberLast4 = "1235",
             expiryMonth = 1,
             expiryYear = 2030,
             cardType = "discover"
         )
         val creditCardFields3 = UpdatableCreditCardFields(
             billingName = "Pineapple Orange",
-            cardNumber = "4111111111111113",
+            encryptedCardNumber = "xxxxxxxxxxxxxxxxxxxx3",
+            cardNumberLast4 = "1236",
             expiryMonth = 2,
             expiryYear = 2028,
             cardType = "visa"
@@ -104,10 +110,11 @@ class AutofillCreditCardsAddressesStorageTest {
     }
 
     @Test
-    fun `updateCreditCard`() = runBlocking {
+    fun `update credit card`() = runBlocking {
         val creditCardFields = UpdatableCreditCardFields(
             billingName = "Jon Doe",
-            cardNumber = "4111111111111111",
+            encryptedCardNumber = "xxxxxxxxxxxxxxxxxxxxx",
+            cardNumberLast4 = "1234",
             expiryMonth = 12,
             expiryYear = 2028,
             cardType = "amex"
@@ -117,7 +124,8 @@ class AutofillCreditCardsAddressesStorageTest {
 
         val newCreditCardFields = UpdatableCreditCardFields(
             billingName = "Jane Fields",
-            cardNumber = "4111111111111112",
+            encryptedCardNumber = "xxxxxxxxxxxxxxxxxxxx2",
+            cardNumberLast4 = "1234",
             expiryMonth = 12,
             expiryYear = 2038,
             cardType = "visa"
@@ -128,17 +136,19 @@ class AutofillCreditCardsAddressesStorageTest {
         creditCard = storage.getCreditCard(creditCard.guid)
 
         assertEquals(newCreditCardFields.billingName, creditCard.billingName)
-        assertEquals(newCreditCardFields.cardNumber, creditCard.cardNumber)
+        assertEquals(newCreditCardFields.encryptedCardNumber, creditCard.encryptedCardNumber)
+        assertEquals(newCreditCardFields.cardNumberLast4, creditCard.cardNumberLast4)
         assertEquals(newCreditCardFields.expiryMonth, creditCard.expiryMonth)
         assertEquals(newCreditCardFields.expiryYear, creditCard.expiryYear)
         assertEquals(newCreditCardFields.cardType, creditCard.cardType)
     }
 
     @Test
-    fun `deleteCreditCard`() = runBlocking {
+    fun `delete credit card`() = runBlocking {
         val creditCardFields = UpdatableCreditCardFields(
             billingName = "Jon Doe",
-            cardNumber = "4111111111111111",
+            encryptedCardNumber = "xxxxxxxxxxxxxxxxxxxxx",
+            cardNumberLast4 = "1234",
             expiryMonth = 12,
             expiryYear = 2028,
             cardType = "amex"
@@ -157,7 +167,7 @@ class AutofillCreditCardsAddressesStorageTest {
     }
 
     @Test
-    fun `addAddress`() = runBlocking {
+    fun `add address`() = runBlocking {
         val addressFields = UpdatableAddressFields(
             givenName = "John",
             additionalName = "",
@@ -191,7 +201,7 @@ class AutofillCreditCardsAddressesStorageTest {
     }
 
     @Test
-    fun `getAddress`() = runBlocking {
+    fun `get address`() = runBlocking {
         val addressFields = UpdatableAddressFields(
             givenName = "John",
             additionalName = "",
@@ -212,7 +222,7 @@ class AutofillCreditCardsAddressesStorageTest {
     }
 
     @Test
-    fun `getAllAddresses`() = runBlocking {
+    fun `get all addresses`() = runBlocking {
         var addresses = storage.getAllAddresses()
         assertEquals(0, addresses.size)
 
@@ -271,7 +281,7 @@ class AutofillCreditCardsAddressesStorageTest {
     }
 
     @Test
-    fun `updateAddress`() = runBlocking {
+    fun `update address`() = runBlocking {
         val addressFields = UpdatableAddressFields(
             givenName = "John",
             additionalName = "",
@@ -323,7 +333,7 @@ class AutofillCreditCardsAddressesStorageTest {
     }
 
     @Test
-    fun `deleteAddress`() = runBlocking {
+    fun `delete address`() = runBlocking {
         val addressFields = UpdatableAddressFields(
             givenName = "John",
             additionalName = "",
