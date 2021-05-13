@@ -6,6 +6,7 @@ package mozilla.components.feature.awesomebar.provider
 
 import kotlinx.coroutines.runBlocking
 import mozilla.components.concept.engine.Engine
+import mozilla.components.concept.storage.DocumentType
 import mozilla.components.concept.storage.HistoryMetadata
 import mozilla.components.concept.storage.HistoryMetadataStorage
 import mozilla.components.support.test.mock
@@ -34,14 +35,13 @@ class HistoryMetadataSuggestionProviderTest {
         val storage: HistoryMetadataStorage = mock()
 
         val result = HistoryMetadata(
-            guid = "testGuid",
             url = "http://www.mozilla.com",
             title = "mozilla",
             createdAt = System.currentTimeMillis(),
             updatedAt = System.currentTimeMillis(),
             totalViewTime = 10,
-            isMedia = false,
-            parentUrl = null,
+            documentType = DocumentType.Regular,
+            referrerDomain = null,
             searchTerm = null
         )
         whenever(storage.queryHistoryMetadata("moz", METADATA_SUGGESTION_LIMIT)).thenReturn(listOf(result))
@@ -51,7 +51,6 @@ class HistoryMetadataSuggestionProviderTest {
         assertEquals(1, suggestions.size)
         assertEquals(result.url, suggestions[0].description)
         assertEquals(result.title, suggestions[0].title)
-        assertEquals(result.guid, suggestions[0].id)
     }
 
     @Test
@@ -71,14 +70,13 @@ class HistoryMetadataSuggestionProviderTest {
         verify(engine, never()).speculativeConnect(anyString())
 
         val result = HistoryMetadata(
-            guid = "testGuid",
             url = "http://www.mozilla.com",
             title = "mozilla",
             createdAt = System.currentTimeMillis(),
             updatedAt = System.currentTimeMillis(),
             totalViewTime = 10,
-            isMedia = false,
-            parentUrl = null,
+            documentType = DocumentType.Regular,
+            referrerDomain = null,
             searchTerm = null
         )
         whenever(storage.queryHistoryMetadata("moz", METADATA_SUGGESTION_LIMIT)).thenReturn(listOf(result))
