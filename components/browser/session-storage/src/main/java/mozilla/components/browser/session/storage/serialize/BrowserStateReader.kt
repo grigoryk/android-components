@@ -14,6 +14,7 @@ import mozilla.components.browser.state.state.TabSessionState
 import mozilla.components.browser.state.state.recover.RecoverableTab
 import mozilla.components.concept.engine.Engine
 import mozilla.components.concept.engine.EngineSessionState
+import mozilla.components.concept.storage.HistoryMetadataKey
 import mozilla.components.support.ktx.android.util.nextBooleanOrNull
 import mozilla.components.support.ktx.android.util.nextStringOrNull
 import mozilla.components.support.ktx.util.readJSON
@@ -167,6 +168,10 @@ private fun JsonReader.tabSession(): RecoverableTab? {
     var readerStateActive: Boolean? = null
     var readerActiveUrl: String? = null
 
+    var historyMetadatUrl: String? = null
+    var historyMetadatSearchTerm: String? = null
+    var historyMetadatReferrerUrl: String? = null
+
     beginObject()
 
     while (hasNext()) {
@@ -178,6 +183,9 @@ private fun JsonReader.tabSession(): RecoverableTab? {
             Keys.SESSION_TITLE -> title = nextStringOrNull() ?: ""
             Keys.SESSION_READER_MODE_KEY -> readerStateActive = nextBooleanOrNull()
             Keys.SESSION_READER_MODE_ACTIVE_URL_KEY -> readerActiveUrl = nextStringOrNull()
+            Keys.SESSION_HISTORY_METADATA_URL -> historyMetadatUrl = nextStringOrNull()
+            Keys.SESSION_HISTORY_METADATA_SEARCH_TERM -> historyMetadatSearchTerm = nextStringOrNull()
+            Keys.SESSION_HISTORY_METADATA_REFERRER_URL -> historyMetadatReferrerUrl = nextStringOrNull()
             Keys.SESSION_LAST_ACCESS -> lastAccess = nextLong()
             Keys.SESSION_SOURCE_KEY -> nextString()
             else -> throw IllegalArgumentException("Unknown session key: $name")
@@ -197,6 +205,11 @@ private fun JsonReader.tabSession(): RecoverableTab? {
             active = readerStateActive ?: false,
             activeUrl = readerActiveUrl
         ),
+        historyMetadata = if (historyMetadatUrl != null) HistoryMetadataKey(
+            historyMetadatUrl,
+            historyMetadatSearchTerm,
+            historyMetadatReferrerUrl
+        ) else null,
         private = false, // We never serialize private sessions
         lastAccess = lastAccess ?: 0
     )
