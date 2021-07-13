@@ -11,6 +11,7 @@ import mozilla.components.browser.state.state.createCustomTab
 import mozilla.components.browser.state.state.createTab
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.support.test.ext.joinBlocking
+import mozilla.components.support.test.mock
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -98,14 +99,14 @@ class TabListActionTest {
         val store = BrowserStore()
 
         val tab1 = createTab("https://www.mozilla.org")
-        val tab2 = createTab("https://www.firefox.com", source = SessionState.Source.MENU)
+        val tab2 = createTab("https://www.firefox.com", source = SessionState.Source.Internal.Menu)
 
         store.dispatch(TabListAction.AddTabAction(tab1)).joinBlocking()
         store.dispatch(TabListAction.AddTabAction(tab2)).joinBlocking()
 
         assertEquals(2, store.state.tabs.size)
-        assertEquals(SessionState.Source.NONE, store.state.tabs[0].source)
-        assertEquals(SessionState.Source.MENU, store.state.tabs[1].source)
+        assertEquals(SessionState.Source.Internal.None, store.state.tabs[0].source)
+        assertEquals(SessionState.Source.Internal.Menu, store.state.tabs[1].source)
     }
 
     @Test
@@ -233,7 +234,8 @@ class TabListActionTest {
                 createTab(id = "a", url = "https://www.mozilla.org")
             ),
             customTabs = listOf(
-                createCustomTab(id = "b", url = "https://www.firefox.com")
+                createCustomTab(id = "b", url = "https://www.firefox.com", source = SessionState.Source.Internal.CustomTab),
+                createCustomTab(id = "c", url = "https://www.firefox.com/hello", source = SessionState.Source.External.CustomTab(mock()))
             ),
             selectedTabId = "a"
         )
@@ -257,7 +259,7 @@ class TabListActionTest {
                 createTab(id = "d", url = "https://getpocket.com")
             ),
             customTabs = listOf(
-                createCustomTab(id = "a1", url = "https://www.firefox.com")
+                createCustomTab(id = "a1", url = "https://www.firefox.com", source = SessionState.Source.Internal.CustomTab)
             ),
             selectedTabId = "c"
         )
@@ -290,8 +292,8 @@ class TabListActionTest {
                 createTab(id = "e", url = "https://developer.mozilla.org/", private = true)
             ),
             customTabs = listOf(
-                createCustomTab(id = "a1", url = "https://www.firefox.com"),
-                createCustomTab(id = "b1", url = "https://hubs.mozilla.com")
+                createCustomTab(id = "a1", url = "https://www.firefox.com", source = SessionState.Source.Internal.CustomTab),
+                createCustomTab(id = "b1", url = "https://hubs.mozilla.com", source = SessionState.Source.External.CustomTab(mock()))
             ),
             selectedTabId = "d"
         )
@@ -323,8 +325,8 @@ class TabListActionTest {
                 createTab(id = "e", url = "https://developer.mozilla.org/", private = false)
             ),
             customTabs = listOf(
-                createCustomTab(id = "a1", url = "https://www.firefox.com"),
-                createCustomTab(id = "b1", url = "https://hubs.mozilla.com")
+                createCustomTab(id = "a1", url = "https://www.firefox.com", source = SessionState.Source.Internal.CustomTab),
+                createCustomTab(id = "b1", url = "https://hubs.mozilla.com", source = SessionState.Source.External.CustomTab(mock()))
             ),
             selectedTabId = "d"
         )
@@ -573,7 +575,8 @@ class TabListActionTest {
                         createTab(id = "b", url = "https://www.firefox.com", private = true)
                 ),
                 customTabs = listOf(
-                        createCustomTab(id = "a1", url = "https://www.firefox.com")
+                    createCustomTab(id = "a1", url = "https://www.firefox.com", source = SessionState.Source.Internal.CustomTab),
+                    createCustomTab(id = "a2", url = "https://www.firefox.com/hello", source = SessionState.Source.External.CustomTab(mock()))
                 ),
                 selectedTabId = "a"
         )
@@ -595,7 +598,7 @@ class TabListActionTest {
                         createTab(id = "b", url = "https://www.firefox.com", private = true)
                 ),
                 customTabs = listOf(
-                        createCustomTab(id = "a1", url = "https://www.firefox.com")
+                        createCustomTab(id = "a1", url = "https://www.firefox.com", source = SessionState.Source.Internal.CustomTab)
                 ),
                 selectedTabId = "a"
         )
@@ -619,7 +622,7 @@ class TabListActionTest {
                         createTab(id = "b", url = "https://www.firefox.com", private = true)
                 ),
                 customTabs = listOf(
-                        createCustomTab(id = "a1", url = "https://www.firefox.com")
+                        createCustomTab(id = "a1", url = "https://www.firefox.com", source = SessionState.Source.Internal.CustomTab)
                 ),
                 selectedTabId = "b"
         )
@@ -643,7 +646,7 @@ class TabListActionTest {
                         createTab(id = "b", url = "https://www.firefox.com", private = true)
                 ),
                 customTabs = listOf(
-                        createCustomTab(id = "a1", url = "https://www.firefox.com")
+                        createCustomTab(id = "a1", url = "https://www.firefox.com", source = SessionState.Source.Internal.CustomTab)
                 ),
                 selectedTabId = "b"
         )
@@ -667,7 +670,7 @@ class TabListActionTest {
                         createTab(id = "b", url = "https://www.firefox.com", private = true)
                 ),
                 customTabs = listOf(
-                        createCustomTab(id = "a1", url = "https://www.firefox.com")
+                        createCustomTab(id = "a1", url = "https://www.firefox.com", source = SessionState.Source.Internal.CustomTab)
                 ),
                 selectedTabId = "a"
         )

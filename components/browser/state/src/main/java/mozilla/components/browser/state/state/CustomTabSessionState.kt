@@ -29,7 +29,7 @@ data class CustomTabSessionState(
     override val extensionState: Map<String, WebExtensionState> = emptyMap(),
     override val mediaSessionState: MediaSessionState? = null,
     override val contextId: String? = null,
-    override val source: SessionState.Source = SessionState.Source.CUSTOM_TAB
+    override val source: Source
 ) : SessionState {
 
     override fun createCopy(
@@ -64,7 +64,7 @@ fun createCustomTab(
     engineSession: EngineSession? = null,
     mediaSessionState: MediaSessionState? = null,
     crashed: Boolean = false,
-    source: SessionState.Source = SessionState.Source.CUSTOM_TAB,
+    source: Source,
     private: Boolean = false,
     webAppManifest: WebAppManifest? = null,
     initialLoadFlags: EngineSession.LoadUrlFlags = EngineSession.LoadUrlFlags.none()

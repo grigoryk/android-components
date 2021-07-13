@@ -17,7 +17,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.launch
 import mozilla.components.browser.state.state.ExternalAppType
-import mozilla.components.browser.state.state.SessionState
+import mozilla.components.browser.state.state.Source
 import mozilla.components.feature.customtabs.createCustomTabConfigFromIntent
 import mozilla.components.feature.customtabs.feature.OriginVerifierFeature
 import mozilla.components.feature.customtabs.isTrustedWebActivityIntent
@@ -59,7 +59,7 @@ class TrustedWebActivityIntentProcessor(
 
             val tabId = addNewTabUseCase.invoke(
                 url,
-                source = SessionState.Source.HOME_SCREEN,
+                source = Source.Internal.HomeScreen,
                 customTabConfig = customTabConfig
             )
 

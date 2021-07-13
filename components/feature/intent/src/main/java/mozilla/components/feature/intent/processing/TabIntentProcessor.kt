@@ -13,7 +13,8 @@ import android.content.Intent.ACTION_SEARCH
 import android.content.Intent.ACTION_WEB_SEARCH
 import android.content.Intent.EXTRA_TEXT
 import android.nfc.NfcAdapter.ACTION_NDEF_DISCOVERED
-import mozilla.components.browser.state.state.SessionState.Source
+import mozilla.components.browser.state.state.Source
+import mozilla.components.browser.state.state.externalPackage
 import mozilla.components.concept.engine.EngineSession.LoadUrlFlags
 import mozilla.components.feature.search.SearchUseCases
 import mozilla.components.feature.session.SessionUseCases
@@ -47,10 +48,11 @@ class TabIntentProcessor(
         return if (url.isNullOrEmpty()) {
             false
         } else {
+            val caller = intent.externalPackage()
             tabsUseCases.selectOrAddTab(
                 url,
                 private = isPrivate,
-                source = Source.ACTION_VIEW,
+                source = Source.External.ActionView(caller),
                 flags = LoadUrlFlags.external()
             )
             true
@@ -68,10 +70,11 @@ class TabIntentProcessor(
             false
         } else {
             val url = WebURLFinder(extraText).bestWebURL()
+            val source = Source.External.ActionView(intent.externalPackage())
             if (url != null) {
-                addNewTab(url, Source.ACTION_SEND)
+                addNewTab(url, source)
             } else {
-                newTabSearchUseCase(extraText, Source.ACTION_SEND)
+                newTabSearchUseCase(extraText, source)
             }
             true
         }
@@ -83,10 +86,11 @@ class TabIntentProcessor(
         return if (searchQuery.isNullOrBlank()) {
             false
         } else {
+            val source = Source.External.ActionView(intent.externalPackage())
             if (searchQuery.isUrl()) {
-                addNewTab(searchQuery, Source.ACTION_SEARCH)
+                addNewTab(searchQuery, source)
             } else {
-                newTabSearchUseCase(searchQuery, Source.ACTION_SEARCH)
+                newTabSearchUseCase(searchQuery, source)
             }
             true
         }

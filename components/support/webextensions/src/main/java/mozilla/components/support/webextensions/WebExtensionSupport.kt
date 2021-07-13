@@ -20,6 +20,7 @@ import mozilla.components.browser.state.selector.allTabs
 import mozilla.components.browser.state.selector.findTabOrCustomTab
 import mozilla.components.browser.state.state.CustomTabSessionState
 import mozilla.components.browser.state.state.SessionState
+import mozilla.components.browser.state.state.Source
 import mozilla.components.browser.state.state.WebExtensionState
 import mozilla.components.browser.state.state.createTab
 import mozilla.components.browser.state.store.BrowserStore
@@ -346,7 +347,7 @@ object WebExtensionSupport {
         // startup and might not be ready yet.
         var scope: CoroutineScope? = null
         scope = store.flowScoped { flow ->
-            flow.map { state -> state.tabs.filter { it.source == SessionState.Source.RESTORED }.size }
+            flow.map { state -> state.tabs.filter { it.source == Source.Internal.Restored }.size }
                 .ifChanged()
                 .collect { size ->
                     if (size > 0) {

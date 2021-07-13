@@ -9,6 +9,7 @@ import mozilla.components.browser.state.action.TabListAction
 import mozilla.components.browser.state.selector.findCustomTab
 import mozilla.components.browser.state.state.CustomTabConfig
 import mozilla.components.browser.state.state.SessionState
+import mozilla.components.browser.state.state.Source
 import mozilla.components.browser.state.state.createCustomTab
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.EngineSession
@@ -37,7 +38,7 @@ class CustomTabsUseCases(
             customTabConfig: CustomTabConfig,
             private: Boolean = false,
             additionalHeaders: Map<String, String>? = null,
-            source: SessionState.Source = SessionState.Source.CUSTOM_TAB
+            source: Source
         ): String {
             val loadUrlFlags = EngineSession.LoadUrlFlags.external()
             val tab = createCustomTab(
@@ -66,7 +67,7 @@ class CustomTabsUseCases(
          */
         operator fun invoke(
             url: String,
-            source: SessionState.Source = SessionState.Source.CUSTOM_TAB,
+            source: Source,
             customTabConfig: CustomTabConfig,
             webAppManifest: WebAppManifest
         ): String {

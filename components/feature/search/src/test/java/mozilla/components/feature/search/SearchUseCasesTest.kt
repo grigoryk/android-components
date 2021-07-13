@@ -98,14 +98,14 @@ class SearchUseCasesTest {
         whenever(tabsUseCases.addTab).thenReturn(newTabUseCase)
         whenever(newTabUseCase(searchUrl)).thenReturn("2342")
 
-        useCases.newTabSearch(searchTerms, SessionState.Source.NEW_TAB)
+        useCases.newTabSearch(searchTerms, SessionState.Source.Internal.NewTab)
         store.waitUntilIdle()
 
         verify(newTabUseCase).invoke(
             searchUrl,
             parentId = null,
             selectTab = true,
-            source = SessionState.Source.NEW_TAB
+            source = SessionState.Source.Internal.NewTab
         )
 
         val searchTermsAction = middleware.findFirstAction(ContentAction.UpdateSearchTermsAction::class)
@@ -126,7 +126,7 @@ class SearchUseCasesTest {
             searchUrl,
             parentId = null,
             selectTab = true,
-            source = SessionState.Source.NEW_TAB
+            source = SessionState.Source.Internal.NewTab
         )
 
         val searchTermsAction = middleware.findFirstAction(ContentAction.UpdateSearchTermsAction::class)
@@ -138,7 +138,7 @@ class SearchUseCasesTest {
     fun newPrivateTabSearch() {
         val newTabUseCase: TabsUseCases.AddNewTabUseCase = mock()
         whenever(tabsUseCases.addTab).thenReturn(newTabUseCase)
-        whenever(newTabUseCase(searchUrl, source = SessionState.Source.NONE, private = true)).thenReturn("1177")
+        whenever(newTabUseCase(searchUrl, source = SessionState.Source.Internal.None, private = true)).thenReturn("1177")
 
         useCases.newPrivateTabSearch.invoke(searchTerms)
         store.waitUntilIdle()
@@ -148,7 +148,7 @@ class SearchUseCasesTest {
             parentId = null,
             selectTab = true,
             private = true,
-            source = SessionState.Source.NONE
+            source = SessionState.Source.Internal.None
         )
 
         val searchTermsAction = middleware.findFirstAction(ContentAction.UpdateSearchTermsAction::class)
@@ -160,7 +160,7 @@ class SearchUseCasesTest {
     fun newPrivateTabSearchWithParentSession() {
         val newTabUseCase: TabsUseCases.AddNewTabUseCase = mock()
         whenever(tabsUseCases.addTab).thenReturn(newTabUseCase)
-        whenever(newTabUseCase(searchUrl, source = SessionState.Source.NONE, parentId = "test-parent", private = true)).thenReturn("1177")
+        whenever(newTabUseCase(searchUrl, source = SessionState.Source.Internal.None, parentId = "test-parent", private = true)).thenReturn("1177")
 
         useCases.newPrivateTabSearch.invoke(searchTerms, parentSessionId = "test-parent")
 
@@ -171,7 +171,7 @@ class SearchUseCasesTest {
             parentId = "test-parent",
             selectTab = true,
             private = true,
-            source = SessionState.Source.NONE
+            source = SessionState.Source.Internal.None
         )
 
         val searchTermsAction = middleware.findFirstAction(ContentAction.UpdateSearchTermsAction::class)

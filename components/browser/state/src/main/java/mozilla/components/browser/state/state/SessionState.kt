@@ -4,6 +4,10 @@
 
 package mozilla.components.browser.state.state
 
+import mozilla.components.support.utils.EXTRA_ACTIVITY_REFERRER_CATEGORY
+import mozilla.components.support.utils.EXTRA_ACTIVITY_REFERRER_PACKAGE
+import mozilla.components.support.utils.SafeIntent
+
 /**
  * Interface for states that contain a [ContentState] and can be accessed via an [id].
  *
@@ -42,64 +46,155 @@ interface SessionState {
         mediaSessionState: MediaSessionState? = this.mediaSessionState,
         contextId: String? = this.contextId
     ): SessionState
+}
+
+/**
+ * Describes a category of an external package.
+ */
+@Suppress("MagicNumber")
+enum class PackageCategory(val id: Int) {
+    UNKNOWN(-1),
+    GAME(0),
+    AUDIO(1),
+    VIDEO(2),
+    IMAGE(3),
+    SOCIAL(4),
+    NEWS(5),
+    MAPS(6),
+    PRODUCTIVITY(7);
+
+    companion object {
+        /**
+         * Maps an int category (as it can be obtained from a package manager) to our internal representation.
+         */
+        fun fromInt(id: Int?): PackageCategory = when (id) {
+            0 -> GAME
+            1 -> AUDIO
+            2 -> VIDEO
+            3 -> IMAGE
+            4 -> SOCIAL
+            5 -> NEWS
+            6 -> MAPS
+            7 -> PRODUCTIVITY
+            -1 -> UNKNOWN
+            null -> UNKNOWN
+            else -> UNKNOWN
+        }
+    }
+}
+
+/**
+ * Describes an external package.
+ * @param packageId An Android package id.
+ * @param category A [PackageCategory] as defined by the application.
+ */
+data class ExternalPackage(val packageId: String, val category: PackageCategory)
+
+/**
+ * Represents the origin of a session to describe how and why it was created.
+ * @param id A unique identifier, exists for serialization purposes.
+ */
+@Suppress("UNUSED_PARAMETER", "MagicNumber")
+sealed class Source(val id: Int) {
+    companion object {
+        fun restore(sourceId: Int?, packageId: String?, packageCategory: Int?): Source {
+            val caller = if (packageId != null) {
+                ExternalPackage(packageId, PackageCategory.fromInt(packageCategory))
+            } else {
+                null
+            }
+            return when (sourceId) {
+                1 -> External.ActionSend(caller)
+                2 -> External.ActionView(caller)
+                3 -> External.ActionSearch(caller)
+                4 -> External.CustomTab(caller)
+                // We only care about restoring 'external' types, so collapse other source types.
+                // This also silently handles abnormalities (like unknown or null sourceId).
+                else -> Internal.Restored
+            }
+        }
+    }
 
     /**
-     * Represents the origin of a session to describe how and why it was created.
+     * Describes sessions of external origins, i.e. from outside of the application.
      */
-    enum class Source {
+    sealed class External(id: Int, open val caller: ExternalPackage?) : Source(id) {
         /**
-         * Created to handle an ACTION_SEND (share) intent
+         * Created to handle an ACTION_SEND (share) intent.
          */
-        ACTION_SEND,
+        data class ActionSend(override val caller: ExternalPackage?) : External(1, caller)
 
         /**
-         * Created to handle an ACTION_SEARCH and ACTION_WEB_SEARCH intent
+         * Created to handle an ACTION_VIEW intent.
          */
-        ACTION_SEARCH,
+        data class ActionView(override val caller: ExternalPackage?) : External(2, caller)
 
         /**
-         * Created to handle an ACTION_VIEW intent
+         * Created to handle an ACTION_SEARCH and ACTION_WEB_SEARCH intent.
          */
-        ACTION_VIEW,
+        data class ActionSearch(override val caller: ExternalPackage?) : External(3, caller)
 
         /**
-         * Created to handle a CustomTabs intent
+         * Created to handle a CustomTabs intent of external origin.
          */
-        CUSTOM_TAB,
+        data class CustomTab(override val caller: ExternalPackage?) : External(4, caller)
+    }
+
+    /**
+     * Describes sessions of internal origin, i.e. from within of the application.
+     */
+    sealed class Internal(id: Int) : Source(id) {
+        /**
+         * User interacted with the home screen.
+         */
+        object HomeScreen : Internal(5)
 
         /**
-         * User interacted with the home screen
+         * User interacted with a menu.
          */
-        HOME_SCREEN,
+        object Menu : Internal(6)
 
         /**
-         * User interacted with a menu
+         * User opened a new tab.
          */
-        MENU,
+        object NewTab : Internal(7)
 
         /**
-         * User opened a new tab
+         * Default value and for testing purposes.
          */
-        NEW_TAB,
+        object None : Internal(8)
 
         /**
-         * Default value and for testing purposes
+         * Default value and for testing purposes.
          */
-        NONE,
+        object TextSelection : Internal(9)
 
         /**
-         * Default value and for testing purposes
+         * User entered a URL or search term.
          */
-        TEXT_SELECTION,
+        object UserEntered : Internal(10)
 
         /**
-         * User entered a URL or search term
+         * This session was restored.
          */
-        USER_ENTERED,
+        object Restored : Internal(11)
 
         /**
-         * This session was restored
+         * Created to handle a CustomTabs intent of internal origin.
          */
-        RESTORED
+        object CustomTab : Internal(12)
+    }
+}
+
+/**
+ * Produces an [ExternalPackage] based on extras present in this intent.
+ */
+fun SafeIntent.externalPackage(): ExternalPackage? {
+    val referrerPackage = this.getStringExtra(EXTRA_ACTIVITY_REFERRER_PACKAGE)
+    val referrerCategory = this.getIntExtra(EXTRA_ACTIVITY_REFERRER_CATEGORY, -1)
+    return if (referrerPackage != null) {
+        ExternalPackage(referrerPackage, PackageCategory.fromInt(referrerCategory))
+    } else {
+        null
     }
 }

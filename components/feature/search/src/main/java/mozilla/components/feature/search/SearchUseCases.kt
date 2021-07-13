@@ -10,6 +10,7 @@ import mozilla.components.browser.state.action.SearchAction
 import mozilla.components.browser.state.search.SearchEngine
 import mozilla.components.browser.state.selector.findTabOrCustomTab
 import mozilla.components.browser.state.state.SessionState
+import mozilla.components.browser.state.state.Source
 import mozilla.components.browser.state.state.selectedOrDefaultSearchEngine
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.feature.search.ext.buildSearchUrl
@@ -111,7 +112,7 @@ class SearchUseCases(
         ) {
             invoke(
                 searchTerms,
-                source = SessionState.Source.NONE,
+                source = Source.Internal.None,
                 selected = true,
                 private = isPrivate,
                 searchEngine = searchEngine,
@@ -132,7 +133,7 @@ class SearchUseCases(
         @Suppress("LongParameterList")
         operator fun invoke(
             searchTerms: String,
-            source: SessionState.Source,
+            source: Source,
             selected: Boolean = true,
             private: Boolean = false,
             searchEngine: SearchEngine? = null,

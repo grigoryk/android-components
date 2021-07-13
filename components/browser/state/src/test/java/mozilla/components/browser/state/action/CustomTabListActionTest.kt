@@ -25,21 +25,25 @@ class CustomTabListActionTest {
         assertEquals(0, store.state.customTabs.size)
 
         val config = CustomTabConfig()
-        val customTab = createCustomTab("https://www.mozilla.org", config = config)
+        val customTab = createCustomTab(
+            "https://www.mozilla.org",
+            config = config,
+            source = SessionState.Source.Internal.CustomTab
+        )
 
         store.dispatch(CustomTabListAction.AddCustomTabAction(customTab)).joinBlocking()
 
         assertEquals(0, store.state.tabs.size)
         assertEquals(1, store.state.customTabs.size)
-        assertEquals(SessionState.Source.CUSTOM_TAB, store.state.customTabs[0].source)
+        assertEquals(SessionState.Source.Internal.CustomTab, store.state.customTabs[0].source)
         assertEquals(customTab, store.state.customTabs[0])
         assertSame(config, store.state.customTabs[0].config)
     }
 
     @Test
     fun `RemoveCustomTabAction - Removes tab with given id`() {
-        val customTab1 = createCustomTab("https://www.mozilla.org")
-        val customTab2 = createCustomTab("https://www.firefox.com")
+        val customTab1 = createCustomTab("https://www.mozilla.org", source = SessionState.Source.Internal.CustomTab)
+        val customTab2 = createCustomTab("https://www.firefox.com", source = SessionState.Source.Internal.CustomTab)
 
         val state = BrowserState(customTabs = listOf(customTab1, customTab2))
         val store = BrowserStore(state)
@@ -54,8 +58,8 @@ class CustomTabListActionTest {
 
     @Test
     fun `RemoveCustomTabAction - Noop for unknown id`() {
-        val customTab1 = createCustomTab("https://www.mozilla.org")
-        val customTab2 = createCustomTab("https://www.firefox.com")
+        val customTab1 = createCustomTab("https://www.mozilla.org", source = SessionState.Source.Internal.CustomTab)
+        val customTab2 = createCustomTab("https://www.firefox.com", source = SessionState.Source.Internal.CustomTab)
 
         val state = BrowserState(customTabs = listOf(customTab1, customTab2))
         val store = BrowserStore(state)
@@ -71,8 +75,8 @@ class CustomTabListActionTest {
 
     @Test
     fun `RemoveAllCustomTabsAction - Removes all custom tabs (but not regular tabs)`() {
-        val customTab1 = createCustomTab("https://www.mozilla.org")
-        val customTab2 = createCustomTab("https://www.firefox.com")
+        val customTab1 = createCustomTab("https://www.mozilla.org", source = SessionState.Source.Internal.CustomTab)
+        val customTab2 = createCustomTab("https://www.firefox.com", source = SessionState.Source.Internal.CustomTab)
         val regularTab = createTab(url = "https://www.mozilla.org")
 
         val state = BrowserState(customTabs = listOf(customTab1, customTab2), tabs = listOf(regularTab))
