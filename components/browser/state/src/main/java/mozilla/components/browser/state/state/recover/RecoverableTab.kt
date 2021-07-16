@@ -5,6 +5,7 @@
 package mozilla.components.browser.state.state.recover
 
 import mozilla.components.browser.state.state.ReaderState
+import mozilla.components.browser.state.state.Source
 import mozilla.components.browser.state.state.TabSessionState
 import mozilla.components.browser.state.state.createTab
 import mozilla.components.concept.engine.EngineSessionState
@@ -28,6 +29,8 @@ import mozilla.components.concept.storage.HistoryMetadataKey
  * @property lastAccess The last time this tab was selected.
  * @property lastMediaAccess The last time media started playing in this tab.
  * @property private If tab was private.
+ * @property historyMetadata The last [HistoryMetadataKey] of the tab.
+ * @property source todo
  */
 data class RecoverableTab(
     val id: String,
@@ -40,7 +43,8 @@ data class RecoverableTab(
     val lastAccess: Long = 0,
     val lastMediaAccess: Long = 0,
     val private: Boolean = false,
-    val historyMetadata: HistoryMetadataKey? = null
+    val historyMetadata: HistoryMetadataKey? = null,
+    val source: Source = Source.Internal.Restored
 )
 
 /**
@@ -57,7 +61,8 @@ fun TabSessionState.toRecoverableTab() = RecoverableTab(
     lastAccess = lastAccess,
     lastMediaAccess = lastMediaAccess,
     private = content.private,
-    historyMetadata = historyMetadata
+    historyMetadata = historyMetadata,
+    source = source
 )
 
 /**
@@ -73,13 +78,10 @@ fun RecoverableTab.toTabSessionState() = createTab(
     readerState = readerState,
     lastAccess = lastAccess,
     lastMediaAccess = lastMediaAccess,
-    private = private
+    private = private,
+    historyMetadata = historyMetadata,
+    source = source
 )
-
-/**
- * Creates a list of [RecoverableTab]s from a List of [TabSessionState]s.
- */
-fun List<TabSessionState>.toRecoverableTabs() = map { it.toRecoverableTab() }
 
 /**
  * Creates a list of [TabSessionState]s from a List of [TabSessionState]s.

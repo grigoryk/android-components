@@ -10,12 +10,14 @@ import android.util.JsonToken
 import mozilla.components.browser.session.storage.RecoverableBrowserState
 import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.ReaderState
+import mozilla.components.browser.state.state.Source
 import mozilla.components.browser.state.state.TabSessionState
 import mozilla.components.browser.state.state.recover.RecoverableTab
 import mozilla.components.concept.engine.Engine
 import mozilla.components.concept.engine.EngineSessionState
 import mozilla.components.concept.storage.HistoryMetadataKey
 import mozilla.components.support.ktx.android.util.nextBooleanOrNull
+import mozilla.components.support.ktx.android.util.nextIntOrNull
 import mozilla.components.support.ktx.android.util.nextStringOrNull
 import mozilla.components.support.ktx.util.readJSON
 import java.util.UUID
@@ -173,6 +175,10 @@ private fun JsonReader.tabSession(): RecoverableTab? {
     var historyMetadataSearchTerm: String? = null
     var historyMetadataReferrerUrl: String? = null
 
+    var externalSourceId: Int? = null
+    var externalSourcePackageId: String? = null
+    var externalSourceCategory: Int? = null
+
     beginObject()
 
     while (hasNext()) {
@@ -189,6 +195,9 @@ private fun JsonReader.tabSession(): RecoverableTab? {
             Keys.SESSION_HISTORY_METADATA_REFERRER_URL -> historyMetadataReferrerUrl = nextStringOrNull()
             Keys.SESSION_LAST_ACCESS -> lastAccess = nextLong()
             Keys.SESSION_LAST_MEDIA_ACCESS -> lastMediaAccess = nextLong()
+            Keys.SESSION_EXTERNAL_SOURCE_ID -> externalSourceId = nextIntOrNull()
+            Keys.SESSION_EXTERNAL_SOURCE_PACKAGE_ID -> externalSourcePackageId = nextStringOrNull()
+            Keys.SESSION_EXTERNAL_SOURCE_PACKAGE_CATEGORY -> externalSourceCategory = nextIntOrNull()
             Keys.SESSION_SOURCE_KEY -> nextString()
             else -> throw IllegalArgumentException("Unknown session key: $name")
         }
@@ -218,6 +227,7 @@ private fun JsonReader.tabSession(): RecoverableTab? {
         },
         private = false, // We never serialize private sessions
         lastAccess = lastAccess ?: 0,
-        lastMediaAccess = lastMediaAccess ?: 0
+        lastMediaAccess = lastMediaAccess ?: 0,
+        source = Source.restore(externalSourceId, externalSourcePackageId, externalSourceCategory)
     )
 }

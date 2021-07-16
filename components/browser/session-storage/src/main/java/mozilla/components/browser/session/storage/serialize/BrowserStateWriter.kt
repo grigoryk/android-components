@@ -7,6 +7,7 @@ package mozilla.components.browser.session.storage.serialize
 import android.util.AtomicFile
 import android.util.JsonWriter
 import mozilla.components.browser.state.state.BrowserState
+import mozilla.components.browser.state.state.Source
 import mozilla.components.browser.state.state.TabSessionState
 import mozilla.components.concept.engine.EngineSessionState
 import mozilla.components.support.ktx.util.streamJSON
@@ -109,6 +110,19 @@ private fun JsonWriter.tab(
 
             name(Keys.SESSION_HISTORY_METADATA_REFERRER_URL)
             value(metadata.referrerUrl)
+        }
+
+        (tab.source as? Source.External)?.let { source ->
+            name(Keys.SESSION_EXTERNAL_SOURCE_ID)
+            value(source.id)
+
+            source.caller?.let { caller ->
+                name(Keys.SESSION_EXTERNAL_SOURCE_PACKAGE_ID)
+                value(caller.packageId)
+
+                name(Keys.SESSION_EXTERNAL_SOURCE_PACKAGE_CATEGORY)
+                value(caller.category.id)
+            }
         }
 
         endObject()
